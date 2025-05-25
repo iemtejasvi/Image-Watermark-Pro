@@ -36,12 +36,12 @@ A premium, high-performance web application for adding professional watermarks t
 
 1. Clone the repository:
 ```bash
-git clone https://github.com/yourusername/image-watermark-pro.git
+git clone https://github.com/iemtejasvi/Image-Watermark-Pro.git
 ```
 
 2. Navigate to the project directory:
 ```bash
-cd image-watermark-pro
+cd Image-Watermark-Pro
 ```
 
 3. Open `index.html` in your web browser.
