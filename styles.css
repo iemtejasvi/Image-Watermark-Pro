@@ -242,15 +242,11 @@ label {
 }
 
 .input-with-icon i {
-    position: absolute;
-    left: 10px;
-    top: 50%;
-    transform: translateY(-50%);
-    color: #666;
+    display: none;
 }
 
 input[type="text"] {
-    padding: 0.75rem 0.75rem 0.75rem 2.5rem;
+    padding: 0.75rem;
     border: 1px solid var(--border-color);
     border-radius: 8px;
     font-size: 1rem;
@@ -669,14 +665,6 @@ footer {
         flex-wrap: wrap;
         justify-content: center;
         width: 90%;
-    }
-
-    input[type="text"] {
-        padding: 0.75rem 0.75rem 0.75rem 2rem;
-    }
-
-    .input-with-icon i {
-        left: 8px;
     }
 }
 
