@@ -301,6 +301,14 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
+    // Handle Enter key in watermark text input
+    watermarkText.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            watermarkText.blur();
+        }
+    });
+
     // Advanced options
     [enableShadow, enableBlur, enableGradient].forEach(option => {
         option.addEventListener('change', drawWatermark);
