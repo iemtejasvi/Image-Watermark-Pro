@@ -670,6 +670,14 @@ footer {
         justify-content: center;
         width: 90%;
     }
+
+    input[type="text"] {
+        padding: 0.75rem 0.75rem 0.75rem 2rem;
+    }
+
+    .input-with-icon i {
+        left: 8px;
+    }
 }
 
 /* Optimize touch interactions */
