@@ -1,5 +1,3 @@
-# Live at: https://iemtejasvi.github.io/Image-Watermark-Pro/
-
 # Image Watermark Pro
 
 A professional, vintage-inspired image watermarking tool. Effortlessly add beautiful, customizable watermarks to your images with a buttery-smooth, mobile-first UI.
@@ -27,6 +25,9 @@ A professional, vintage-inspired image watermarking tool. Effortlessly add beaut
 - Adjust watermark text, style, and sliders
 - Download your watermarked image
 
+## Demo Screenshots
+<!-- Add screenshots here -->
+
 ## Contribution Guidelines
 1. Fork the repository
 2. Create your feature branch
@@ -34,12 +35,19 @@ A professional, vintage-inspired image watermarking tool. Effortlessly add beaut
 4. Push to your branch
 5. Create a Pull Request
 
+## License
+MIT License
+
 ## Acknowledgments
 - Font Awesome for icons
 - Google Fonts for typography
 - Transparent Textures for background
 - Modern web standards and best practices
 
+## Version History
+- 3.0.0: Vintage UI, mobile-first, slider overhaul
+- 2.0.0: Advanced features
+- 1.0.0: Initial release
 
+## Support
 For support, please open an issue in the GitHub repository.
-

@@ -266,13 +266,9 @@ document.addEventListener('DOMContentLoaded', () => {
                     imageDimensions.textContent = `${originalImage.width} × ${originalImage.height}`;
                     imageSize.textContent = `${(file.size / 1024).toFixed(1)} KB`;
                     uploadOverlay.classList.add('hidden');
-                    // Show controls immediately on mobile
                     changeImageBtn.style.display = 'flex';
                     deleteImageBtn.style.display = 'flex';
-                    // Ensure all controls are visible
-                    document.querySelectorAll('.preview-controls .icon-btn').forEach(btn => {
-                        btn.style.display = 'flex';
-                    });
+                    dropZone.classList.add('has-image');
                     drawWatermark();
                 };
                 originalImage.src = event.target.result;
@@ -288,9 +284,9 @@ document.addEventListener('DOMContentLoaded', () => {
         imageDimensions.textContent = 'No image loaded';
         imageSize.textContent = '0 KB';
         uploadOverlay.classList.remove('hidden');
-        // Hide controls on mobile
         changeImageBtn.style.display = 'none';
         deleteImageBtn.style.display = 'none';
+        dropZone.classList.remove('has-image');
         downloadBtn.disabled = true;
     }
 
@@ -499,54 +495,77 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // Canvas pan functionality
-    canvas.addEventListener('mousedown', (e) => {
-        isDragging = true;
-        startX = e.clientX - translateX;
-        startY = e.clientY - translateY;
-    });
-
-    canvas.addEventListener('mousemove', (e) => {
-        if (isDragging) {
-            translateX = e.clientX - startX;
-            translateY = e.clientY - startY;
-            updateCanvasTransform();
-        }
-    });
-
-    canvas.addEventListener('mouseup', () => {
-        isDragging = false;
-    });
-
-    canvas.addEventListener('mouseleave', () => {
-        isDragging = false;
-    });
-
-    function updateCanvasTransform() {
-        canvas.style.transform = `translate(${translateX}px, ${translateY}px) scale(${currentZoom})`;
+    // Mobile touch handling
+    function isMobile() {
+        return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
     }
 
-    // Prevent default touch behavior on canvas
-    canvas.addEventListener('touchstart', (e) => {
-        if (e.touches.length === 1) {
-            e.preventDefault();
+    // Update canvas transform with mobile support
+    function updateCanvasTransform() {
+        if (isMobile()) {
+            // On mobile, only apply zoom, not translation
+            canvas.style.transform = `scale(${currentZoom})`;
+        } else {
+            canvas.style.transform = `translate(${translateX}px, ${translateY}px) scale(${currentZoom})`;
         }
-    }, { passive: false });
+    }
 
-    canvas.addEventListener('touchmove', (e) => {
-        if (e.touches.length === 1) {
-            e.preventDefault();
-        }
-    }, { passive: false });
+    // Update touch event listeners
+    if (isMobile()) {
+        // Remove mouse event listeners on mobile
+        canvas.removeEventListener('mousedown', handleMouseDown);
+        canvas.removeEventListener('mousemove', handleMouseMove);
+        canvas.removeEventListener('mouseup', handleMouseUp);
+        canvas.removeEventListener('mouseleave', handleMouseUp);
 
-    // Ensure controls are visible on mobile after image load
-    window.addEventListener('resize', () => {
-        if (originalImage) {
-            document.querySelectorAll('.preview-controls .icon-btn').forEach(btn => {
-                btn.style.display = 'flex';
-            });
+        // Add touch event listeners
+        canvas.addEventListener('touchstart', handleTouchStart, { passive: true });
+        canvas.addEventListener('touchmove', handleTouchMove, { passive: true });
+        canvas.addEventListener('touchend', handleTouchEnd, { passive: true });
+    }
+
+    function handleTouchStart(e) {
+        if (e.touches.length === 1) {
+            isDragging = true;
+            startX = e.touches[0].clientX - translateX;
+            startY = e.touches[0].clientY - translateY;
         }
-    });
+    }
+
+    function handleTouchMove(e) {
+        if (!isDragging) return;
+        e.preventDefault();
+        translateX = e.touches[0].clientX - startX;
+        translateY = e.touches[0].clientY - startY;
+        updateCanvasTransform();
+    }
+
+    function handleTouchEnd() {
+        isDragging = false;
+    }
+
+    // Update zoom controls for mobile
+    if (isMobile()) {
+        zoomInBtn.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            currentZoom = Math.min(currentZoom + 0.1, 3);
+            updateCanvasTransform();
+        }, { passive: false });
+
+        zoomOutBtn.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            currentZoom = Math.max(currentZoom - 0.1, 0.5);
+            updateCanvasTransform();
+        }, { passive: false });
+
+        resetZoomBtn.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            currentZoom = 1;
+            translateX = 0;
+            translateY = 0;
+            updateCanvasTransform();
+        }, { passive: false });
+    }
 
     // Initialize
     initializeSettings();
