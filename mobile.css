@@ -25,24 +25,31 @@
         height: auto !important;
         min-height: 200px !important;
         max-height: 50vh !important;
-        overflow: visible !important;
+        overflow: hidden !important;
         position: relative !important;
         touch-action: pan-y !important;
         -webkit-overflow-scrolling: touch !important;
         margin: 0 !important;
         padding: 0 !important;
         z-index: 1 !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        background-color: var(--secondary-color) !important;
     }
 
     /* Fix canvas touch handling */
     canvas {
         width: 100% !important;
-        height: auto !important;
+        height: 100% !important;
         max-height: 50vh !important;
         object-fit: contain !important;
         touch-action: pan-y !important;
         pointer-events: none !important;
         z-index: 1 !important;
+        display: block !important;
+        margin: 0 !important;
+        padding: 0 !important;
     }
 
     /* Hide controls by default */
