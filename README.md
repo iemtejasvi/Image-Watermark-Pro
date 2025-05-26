@@ -25,9 +25,6 @@ A professional, vintage-inspired image watermarking tool. Effortlessly add beaut
 - Adjust watermark text, style, and sliders
 - Download your watermarked image
 
-## Demo Screenshots
-<!-- Add screenshots here -->
-
 ## Contribution Guidelines
 1. Fork the repository
 2. Create your feature branch
