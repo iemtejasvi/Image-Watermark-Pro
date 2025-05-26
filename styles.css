@@ -501,39 +501,23 @@ canvas {
 }
 
 .preview-controls {
-    position: fixed;
-    bottom: max(1rem, env(safe-area-inset-bottom));
-    left: 50%;
-    transform: translateX(-50%);
-    top: auto;
-    right: auto;
-    background-color: rgba(255, 255, 255, 0.98);
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
-    width: auto;
-    max-width: min(90vw, 400px);
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    z-index: 10;
     display: flex;
     gap: 0.5rem;
-    padding: 0.75rem;
+    background-color: rgba(255, 255, 255, 0.95);
+    padding: 0.5rem;
     border-radius: 25px;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
-    z-index: 1000;
-    flex-wrap: nowrap;
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-    scrollbar-width: none;
-    -ms-overflow-style: none;
-}
-
-.preview-controls::-webkit-scrollbar {
-    display: none;
+    box-shadow: 0 2px 10px var(--shadow-color);
+    backdrop-filter: blur(5px);
+    -webkit-backdrop-filter: blur(5px);
 }
 
 .icon-btn {
-    width: 44px;
-    height: 44px;
-    min-width: 44px;
-    min-height: 44px;
+    width: 36px;
+    height: 36px;
     border: none;
     border-radius: 50%;
     background-color: white;
@@ -547,7 +531,6 @@ canvas {
     will-change: transform;
     transform: translateZ(0);
     transition: transform 0.2s ease, box-shadow 0.2s ease;
-    touch-action: manipulation;
 }
 
 .icon-btn:hover {
@@ -624,34 +607,74 @@ footer {
     }
 
     .preview-controls {
+        position: fixed;
         bottom: max(1rem, env(safe-area-inset-bottom));
         left: 50%;
-        transform: translateX(-50%);
+        transform: translateX(-50%) !important;
+        top: auto;
+        right: auto;
+        background-color: rgba(255, 255, 255, 0.98);
         width: auto;
         max-width: min(90vw, 400px);
-        padding: 0.75rem;
-        gap: 0.5rem;
         flex-wrap: nowrap;
         overflow-x: auto;
         -webkit-overflow-scrolling: touch;
         scrollbar-width: none;
         -ms-overflow-style: none;
         z-index: 1000;
+        padding: 0.75rem;
+        border-radius: 25px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+        display: flex !important;
+        gap: 0.5rem;
     }
 
-    .icon-btn {
-        width: 44px;
-        height: 44px;
+    .preview-controls .icon-btn {
         min-width: 44px;
         min-height: 44px;
-        padding: 0;
-        display: flex;
-        align-items: center;
+        padding: 0.75rem;
+        display: flex !important;
+    }
+
+    input[type="range"] {
+        -webkit-appearance: none;
+        appearance: none;
+        height: 8px;
+        background: var(--border-color);
+        border-radius: 6px;
+        margin: 0.5rem 0;
+        box-shadow: 0 1px 4px var(--shadow-color);
+    }
+
+    input[type="range"]::-webkit-slider-thumb {
+        -webkit-appearance: none;
+        appearance: none;
+        width: 22px;
+        height: 22px;
+        background: var(--primary-color);
+        border: 2px solid var(--accent-brown);
+        border-radius: 50%;
+        cursor: pointer;
+        box-shadow: 0 2px 8px var(--shadow-color);
+        margin-top: -7px;
+    }
+
+    input[type="range"]::-moz-range-thumb {
+        width: 22px;
+        height: 22px;
+        background: var(--primary-color);
+        border: 2px solid var(--accent-brown);
+        border-radius: 50%;
+        cursor: pointer;
+        box-shadow: 0 2px 8px var(--shadow-color);
+    }
+
+    .pattern-buttons {
         justify-content: center;
     }
 
-    #changeImage, #deleteImage {
-        display: flex !important;
+    .pattern-btn {
+        min-width: 50px;
     }
 }
 
@@ -713,7 +736,7 @@ footer {
     }
     
     canvas {
-        touch-action: pan-x pan-y;
+        touch-action: none;
     }
     
     .preview-controls {
@@ -880,6 +903,15 @@ html {
         padding: 0.75rem;
         border-radius: 25px;
         box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+        display: flex !important;
+        gap: 0.5rem;
+    }
+
+    .preview-controls .icon-btn {
+        min-width: 44px;
+        min-height: 44px;
+        padding: 0.75rem;
+        display: flex !important;
     }
 
     .controls {
