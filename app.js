@@ -500,41 +500,58 @@ document.addEventListener('DOMContentLoaded', () => {
         return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
     }
 
-    // Update zoom controls for mobile
-    if (isMobile()) {
-        // Remove mouse event listeners on mobile
-        canvas.removeEventListener('mousedown', handleMouseDown);
-        canvas.removeEventListener('mousemove', handleMouseMove);
-        canvas.removeEventListener('mouseup', handleMouseUp);
-        canvas.removeEventListener('mouseleave', handleMouseUp);
+    // Update canvas transform with mobile support
+    function updateCanvasTransform() {
+        if (isMobile()) {
+            canvas.style.transform = `translate(${translateX}px, ${translateY}px) scale(${currentZoom})`;
+        } else {
+            canvas.style.transform = `translate(${translateX}px, ${translateY}px) scale(${currentZoom})`;
+        }
+    }
 
-        // Add touch event listeners
-        canvas.addEventListener('touchstart', handleTouchStart, { passive: true });
-        canvas.addEventListener('touchmove', handleTouchMove, { passive: true });
-        canvas.addEventListener('touchend', handleTouchEnd, { passive: true });
+    // Update touch event listeners
+    if (isMobile()) {
+        let initialDistance = 0;
+        let initialZoom = 1;
+
+        canvas.addEventListener('touchstart', (e) => {
+            if (e.touches.length === 1) {
+                isDragging = true;
+                startX = e.touches[0].clientX - translateX;
+                startY = e.touches[0].clientY - translateY;
+            } else if (e.touches.length === 2) {
+                isDragging = false;
+                initialDistance = Math.hypot(
+                    e.touches[0].clientX - e.touches[1].clientX,
+                    e.touches[0].clientY - e.touches[1].clientY
+                );
+                initialZoom = currentZoom;
+            }
+        }, { passive: true });
+
+        canvas.addEventListener('touchmove', (e) => {
+            if (e.touches.length === 1 && isDragging) {
+                e.preventDefault();
+                translateX = e.touches[0].clientX - startX;
+                translateY = e.touches[0].clientY - startY;
+                updateCanvasTransform();
+            } else if (e.touches.length === 2) {
+                e.preventDefault();
+                const currentDistance = Math.hypot(
+                    e.touches[0].clientX - e.touches[1].clientX,
+                    e.touches[0].clientY - e.touches[1].clientY
+                );
+                const scale = currentDistance / initialDistance;
+                currentZoom = Math.min(Math.max(initialZoom * scale, 0.5), 3);
+                updateCanvasTransform();
+            }
+        }, { passive: false });
+
+        canvas.addEventListener('touchend', () => {
+            isDragging = false;
+        });
 
         // Update zoom controls for mobile
-        zoomInBtn.addEventListener('click', (e) => {
-            e.preventDefault();
-            currentZoom = Math.min(currentZoom + 0.1, 3);
-            updateCanvasTransform();
-        });
-
-        zoomOutBtn.addEventListener('click', (e) => {
-            e.preventDefault();
-            currentZoom = Math.max(currentZoom - 0.1, 0.5);
-            updateCanvasTransform();
-        });
-
-        resetZoomBtn.addEventListener('click', (e) => {
-            e.preventDefault();
-            currentZoom = 1;
-            translateX = 0;
-            translateY = 0;
-            updateCanvasTransform();
-        });
-
-        // Add touch event listeners for zoom buttons
         zoomInBtn.addEventListener('touchstart', (e) => {
             e.preventDefault();
             currentZoom = Math.min(currentZoom + 0.1, 3);
@@ -554,37 +571,6 @@ document.addEventListener('DOMContentLoaded', () => {
             translateY = 0;
             updateCanvasTransform();
         }, { passive: false });
-    }
-
-    // Update canvas transform with mobile support
-    function updateCanvasTransform() {
-        if (isMobile()) {
-            // On mobile, apply both zoom and translation
-            canvas.style.transform = `translate(${translateX}px, ${translateY}px) scale(${currentZoom})`;
-            canvas.style.transformOrigin = 'center center';
-        } else {
-            canvas.style.transform = `translate(${translateX}px, ${translateY}px) scale(${currentZoom})`;
-        }
-    }
-
-    function handleTouchStart(e) {
-        if (e.touches.length === 1) {
-            isDragging = true;
-            startX = e.touches[0].clientX - translateX;
-            startY = e.touches[0].clientY - translateY;
-        }
-    }
-
-    function handleTouchMove(e) {
-        if (!isDragging) return;
-        e.preventDefault();
-        translateX = e.touches[0].clientX - startX;
-        translateY = e.touches[0].clientY - startY;
-        updateCanvasTransform();
-    }
-
-    function handleTouchEnd() {
-        isDragging = false;
     }
 
     // Initialize
