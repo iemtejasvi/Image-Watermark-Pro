@@ -500,17 +500,7 @@ document.addEventListener('DOMContentLoaded', () => {
         return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
     }
 
-    // Update canvas transform with mobile support
-    function updateCanvasTransform() {
-        if (isMobile()) {
-            // On mobile, only apply zoom, not translation
-            canvas.style.transform = `scale(${currentZoom})`;
-        } else {
-            canvas.style.transform = `translate(${translateX}px, ${translateY}px) scale(${currentZoom})`;
-        }
-    }
-
-    // Update touch event listeners
+    // Update zoom controls for mobile
     if (isMobile()) {
         // Remove mouse event listeners on mobile
         canvas.removeEventListener('mousedown', handleMouseDown);
@@ -522,6 +512,59 @@ document.addEventListener('DOMContentLoaded', () => {
         canvas.addEventListener('touchstart', handleTouchStart, { passive: true });
         canvas.addEventListener('touchmove', handleTouchMove, { passive: true });
         canvas.addEventListener('touchend', handleTouchEnd, { passive: true });
+
+        // Update zoom controls for mobile
+        zoomInBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            currentZoom = Math.min(currentZoom + 0.1, 3);
+            updateCanvasTransform();
+        });
+
+        zoomOutBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            currentZoom = Math.max(currentZoom - 0.1, 0.5);
+            updateCanvasTransform();
+        });
+
+        resetZoomBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            currentZoom = 1;
+            translateX = 0;
+            translateY = 0;
+            updateCanvasTransform();
+        });
+
+        // Add touch event listeners for zoom buttons
+        zoomInBtn.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            currentZoom = Math.min(currentZoom + 0.1, 3);
+            updateCanvasTransform();
+        }, { passive: false });
+
+        zoomOutBtn.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            currentZoom = Math.max(currentZoom - 0.1, 0.5);
+            updateCanvasTransform();
+        }, { passive: false });
+
+        resetZoomBtn.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            currentZoom = 1;
+            translateX = 0;
+            translateY = 0;
+            updateCanvasTransform();
+        }, { passive: false });
+    }
+
+    // Update canvas transform with mobile support
+    function updateCanvasTransform() {
+        if (isMobile()) {
+            // On mobile, apply both zoom and translation
+            canvas.style.transform = `translate(${translateX}px, ${translateY}px) scale(${currentZoom})`;
+            canvas.style.transformOrigin = 'center center';
+        } else {
+            canvas.style.transform = `translate(${translateX}px, ${translateY}px) scale(${currentZoom})`;
+        }
     }
 
     function handleTouchStart(e) {
@@ -542,29 +585,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function handleTouchEnd() {
         isDragging = false;
-    }
-
-    // Update zoom controls for mobile
-    if (isMobile()) {
-        zoomInBtn.addEventListener('touchstart', (e) => {
-            e.preventDefault();
-            currentZoom = Math.min(currentZoom + 0.1, 3);
-            updateCanvasTransform();
-        }, { passive: false });
-
-        zoomOutBtn.addEventListener('touchstart', (e) => {
-            e.preventDefault();
-            currentZoom = Math.max(currentZoom - 0.1, 0.5);
-            updateCanvasTransform();
-        }, { passive: false });
-
-        resetZoomBtn.addEventListener('touchstart', (e) => {
-            e.preventDefault();
-            currentZoom = 1;
-            translateX = 0;
-            translateY = 0;
-            updateCanvasTransform();
-        }, { passive: false });
     }
 
     // Initialize
