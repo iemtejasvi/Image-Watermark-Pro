@@ -4,6 +4,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const ctx = canvas.getContext('2d');
     const imageInput = document.getElementById('imageInput');
     const dropZone = document.getElementById('dropZone');
+    const uploadOverlay = document.getElementById('uploadOverlay');
+    const changeImageBtn = document.getElementById('changeImage');
+    const deleteImageBtn = document.getElementById('deleteImage');
     const watermarkText = document.getElementById('watermarkText');
     const opacityInput = document.getElementById('opacity');
     const fontSizeInput = document.getElementById('fontSize');
@@ -41,6 +44,8 @@ document.addEventListener('DOMContentLoaded', () => {
     let isDragging = false;
     let startX, startY, translateX = 0, translateY = 0;
     let presets = JSON.parse(localStorage.getItem('watermarkPresets') || '[]');
+    let isDrawing = false;
+    let drawTimeout;
 
     // Signature protection
     const signatureHex = '54656A61737669';
@@ -65,7 +70,7 @@ document.addEventListener('DOMContentLoaded', () => {
         opacity: 40,
         fontSize: 24,
         rotation: 45,
-        spacing: 2,
+        spacing: 5,
         color: '#ffffff',
         fontFamily: 'Roboto',
         pattern: 'diagonal',
@@ -154,19 +159,19 @@ document.addEventListener('DOMContentLoaded', () => {
             // Use a single switch statement for better performance
             switch (currentPattern) {
                 case 'diagonal':
-                    drawDiagonalPattern(numWatermarks, spacingPx, rotation, text);
+                    drawDiagonalPattern(numWatermarks, spacingPx, rotation, text, ctx, canvas);
                     break;
                 case 'grid':
-                    drawGridPattern(numWatermarks, spacingPx, rotation, text);
+                    drawGridPattern(numWatermarks, spacingPx, rotation, text, ctx, canvas);
                     break;
                 case 'random':
-                    drawRandomPattern(numWatermarks, spacingPx, rotation, text);
+                    drawRandomPattern(numWatermarks, spacingPx, rotation, text, ctx, canvas);
                     break;
                 case 'wave':
-                    drawWavePattern(numWatermarks, spacingPx, rotation, text);
+                    drawWavePattern(numWatermarks, spacingPx, rotation, text, ctx, canvas);
                     break;
                 case 'spiral':
-                    drawSpiralPattern(numWatermarks, spacingPx, rotation, text);
+                    drawSpiralPattern(numWatermarks, spacingPx, rotation, text, ctx, canvas);
                     break;
             }
 
@@ -176,45 +181,45 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // Pattern drawing functions
-    function drawDiagonalPattern(numWatermarks, spacing, rotation, text) {
+    function drawDiagonalPattern(numWatermarks, spacing, rotation, text, ctx, canvas) {
         for (let i = -numWatermarks; i < numWatermarks; i++) {
             for (let j = -numWatermarks; j < numWatermarks; j++) {
                 const x = i * spacing;
                 const y = j * spacing;
-                drawWatermarkText(x, y, rotation, text);
+                drawWatermarkText(x, y, rotation, text, ctx);
             }
         }
     }
 
-    function drawGridPattern(numWatermarks, spacing, rotation, text) {
+    function drawGridPattern(numWatermarks, spacing, rotation, text, ctx, canvas) {
         for (let i = 0; i < numWatermarks; i++) {
             for (let j = 0; j < numWatermarks; j++) {
                 const x = i * spacing;
                 const y = j * spacing;
-                drawWatermarkText(x, y, rotation, text);
+                drawWatermarkText(x, y, rotation, text, ctx);
             }
         }
     }
 
-    function drawRandomPattern(numWatermarks, spacing, rotation, text) {
+    function drawRandomPattern(numWatermarks, spacing, rotation, text, ctx, canvas) {
         for (let i = 0; i < numWatermarks * 2; i++) {
             const x = Math.random() * canvas.width;
             const y = Math.random() * canvas.height;
-            drawWatermarkText(x, y, rotation, text);
+            drawWatermarkText(x, y, rotation, text, ctx);
         }
     }
 
-    function drawWavePattern(numWatermarks, spacing, rotation, text) {
+    function drawWavePattern(numWatermarks, spacing, rotation, text, ctx, canvas) {
         for (let i = 0; i < numWatermarks; i++) {
             for (let j = 0; j < numWatermarks; j++) {
                 const x = i * spacing;
                 const y = j * spacing + Math.sin(i * 0.5) * spacing;
-                drawWatermarkText(x, y, rotation, text);
+                drawWatermarkText(x, y, rotation, text, ctx);
             }
         }
     }
 
-    function drawSpiralPattern(numWatermarks, spacing, rotation, text) {
+    function drawSpiralPattern(numWatermarks, spacing, rotation, text, ctx, canvas) {
         const centerX = canvas.width / 2;
         const centerY = canvas.height / 2;
         for (let i = 0; i < numWatermarks * 2; i++) {
@@ -222,11 +227,11 @@ document.addEventListener('DOMContentLoaded', () => {
             const radius = i * spacing * 0.5;
             const x = centerX + Math.cos(angle) * radius;
             const y = centerY + Math.sin(angle) * radius;
-            drawWatermarkText(x, y, rotation, text);
+            drawWatermarkText(x, y, rotation, text, ctx);
         }
     }
 
-    function drawWatermarkText(x, y, rotation, text) {
+    function drawWatermarkText(x, y, rotation, text, ctx) {
         ctx.save();
         ctx.translate(x, y);
         ctx.rotate((rotation * Math.PI) / 180);
@@ -260,6 +265,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 originalImage.onload = () => {
                     imageDimensions.textContent = `${originalImage.width} × ${originalImage.height}`;
                     imageSize.textContent = `${(file.size / 1024).toFixed(1)} KB`;
+                    uploadOverlay.classList.add('hidden');
+                    changeImageBtn.style.display = 'flex';
+                    deleteImageBtn.style.display = 'flex';
                     drawWatermark();
                 };
                 originalImage.src = event.target.result;
@@ -268,11 +276,29 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    // Delete image
+    function deleteImage() {
+        originalImage = null;
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        imageDimensions.textContent = 'No image loaded';
+        imageSize.textContent = '0 KB';
+        uploadOverlay.classList.remove('hidden');
+        changeImageBtn.style.display = 'none';
+        deleteImageBtn.style.display = 'none';
+        downloadBtn.disabled = true;
+    }
+
     // Event Listeners
     imageInput.addEventListener('change', (e) => {
         const file = e.target.files[0];
         handleImageUpload(file);
     });
+
+    changeImageBtn.addEventListener('click', () => {
+        imageInput.click();
+    });
+
+    deleteImageBtn.addEventListener('click', deleteImage);
 
     // Drag and drop functionality
     dropZone.addEventListener('dragover', (e) => {
@@ -366,10 +392,77 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Optimize download functionality for highest quality
     downloadBtn.addEventListener('click', () => {
+        // Create a temporary canvas to maintain original dimensions
+        const tempCanvas = document.createElement('canvas');
+        const tempCtx = tempCanvas.getContext('2d', { alpha: true });
+        
+        // Set dimensions to match original image
+        tempCanvas.width = originalImage.width;
+        tempCanvas.height = originalImage.height;
+        
+        // Draw original image
+        tempCtx.drawImage(originalImage, 0, 0);
+        
+        // Apply watermark with original dimensions
+        const fontSize = parseInt(fontSizeInput.value);
+        const opacity = parseInt(opacityInput.value) / 100;
+        const rotation = parseInt(rotationInput.value);
+        const spacing = parseFloat(spacingInput.value);
+        const text = watermarkText.value;
+        const color = colorInput.value;
+
+        tempCtx.save();
+        tempCtx.globalAlpha = opacity;
+        tempCtx.font = `${fontSize}px ${fontFamilySelect.value}`;
+        
+        if (enableGradient.checked) {
+            const gradient = tempCtx.createLinearGradient(0, 0, tempCanvas.width, tempCanvas.height);
+            gradient.addColorStop(0, color);
+            gradient.addColorStop(1, invertColor(color));
+            tempCtx.fillStyle = gradient;
+        } else {
+            tempCtx.fillStyle = color;
+        }
+
+        if (enableShadow.checked) {
+            tempCtx.shadowColor = 'rgba(0, 0, 0, 0.5)';
+            tempCtx.shadowBlur = 5;
+            tempCtx.shadowOffsetX = 2;
+            tempCtx.shadowOffsetY = 2;
+        }
+
+        tempCtx.textAlign = 'center';
+        tempCtx.textBaseline = 'middle';
+
+        const spacingPx = fontSize * spacing;
+        const diagonal = Math.sqrt(tempCanvas.width * tempCanvas.width + tempCanvas.height * tempCanvas.height);
+        const numWatermarks = Math.ceil(diagonal / spacingPx) * 2;
+
+        // Draw watermark pattern
+        switch (currentPattern) {
+            case 'diagonal':
+                drawDiagonalPattern(numWatermarks, spacingPx, rotation, text, tempCtx, tempCanvas);
+                break;
+            case 'grid':
+                drawGridPattern(numWatermarks, spacingPx, rotation, text, tempCtx, tempCanvas);
+                break;
+            case 'random':
+                drawRandomPattern(numWatermarks, spacingPx, rotation, text, tempCtx, tempCanvas);
+                break;
+            case 'wave':
+                drawWavePattern(numWatermarks, spacingPx, rotation, text, tempCtx, tempCanvas);
+                break;
+            case 'spiral':
+                drawSpiralPattern(numWatermarks, spacingPx, rotation, text, tempCtx, tempCanvas);
+                break;
+        }
+
+        tempCtx.restore();
+
+        // Create download link with highest quality PNG
         const link = document.createElement('a');
         link.download = 'watermarked-image.png';
-        // Use maximum quality for PNG
-        link.href = canvas.toDataURL('image/png', 1.0);
+        link.href = tempCanvas.toDataURL('image/png', 1.0);
         link.click();
     });
 
