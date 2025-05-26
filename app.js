@@ -266,8 +266,13 @@ document.addEventListener('DOMContentLoaded', () => {
                     imageDimensions.textContent = `${originalImage.width} × ${originalImage.height}`;
                     imageSize.textContent = `${(file.size / 1024).toFixed(1)} KB`;
                     uploadOverlay.classList.add('hidden');
+                    // Show all controls
                     changeImageBtn.style.display = 'flex';
                     deleteImageBtn.style.display = 'flex';
+                    zoomInBtn.style.display = 'flex';
+                    zoomOutBtn.style.display = 'flex';
+                    resetZoomBtn.style.display = 'flex';
+                    fullscreenBtn.style.display = 'flex';
                     drawWatermark();
                 };
                 originalImage.src = event.target.result;
@@ -283,8 +288,13 @@ document.addEventListener('DOMContentLoaded', () => {
         imageDimensions.textContent = 'No image loaded';
         imageSize.textContent = '0 KB';
         uploadOverlay.classList.remove('hidden');
+        // Hide all controls
         changeImageBtn.style.display = 'none';
         deleteImageBtn.style.display = 'none';
+        zoomInBtn.style.display = 'none';
+        zoomOutBtn.style.display = 'none';
+        resetZoomBtn.style.display = 'none';
+        fullscreenBtn.style.display = 'none';
         downloadBtn.disabled = true;
     }
 
@@ -519,6 +529,17 @@ document.addEventListener('DOMContentLoaded', () => {
     function updateCanvasTransform() {
         canvas.style.transform = `translate(${translateX}px, ${translateY}px) scale(${currentZoom})`;
     }
+
+    // Initialize controls visibility
+    function initializeControls() {
+        const controls = [changeImageBtn, deleteImageBtn, zoomInBtn, zoomOutBtn, resetZoomBtn, fullscreenBtn];
+        controls.forEach(control => {
+            control.style.display = 'none';
+        });
+    }
+
+    // Call initialize on load
+    initializeControls();
 
     // Initialize
     initializeSettings();
