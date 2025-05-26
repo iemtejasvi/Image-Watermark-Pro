@@ -267,12 +267,9 @@ document.addEventListener('DOMContentLoaded', () => {
                     imageSize.textContent = `${(file.size / 1024).toFixed(1)} KB`;
                     uploadOverlay.classList.add('hidden');
                     // Show all controls
-                    changeImageBtn.style.display = 'flex';
-                    deleteImageBtn.style.display = 'flex';
-                    zoomInBtn.style.display = 'flex';
-                    zoomOutBtn.style.display = 'flex';
-                    resetZoomBtn.style.display = 'flex';
-                    fullscreenBtn.style.display = 'flex';
+                    [changeImageBtn, deleteImageBtn, zoomInBtn, zoomOutBtn, resetZoomBtn, fullscreenBtn].forEach(btn => {
+                        btn.style.display = 'flex';
+                    });
                     drawWatermark();
                 };
                 originalImage.src = event.target.result;
@@ -289,12 +286,9 @@ document.addEventListener('DOMContentLoaded', () => {
         imageSize.textContent = '0 KB';
         uploadOverlay.classList.remove('hidden');
         // Hide all controls
-        changeImageBtn.style.display = 'none';
-        deleteImageBtn.style.display = 'none';
-        zoomInBtn.style.display = 'none';
-        zoomOutBtn.style.display = 'none';
-        resetZoomBtn.style.display = 'none';
-        fullscreenBtn.style.display = 'none';
+        [changeImageBtn, deleteImageBtn, zoomInBtn, zoomOutBtn, resetZoomBtn, fullscreenBtn].forEach(btn => {
+            btn.style.display = 'none';
+        });
         downloadBtn.disabled = true;
     }
 
@@ -530,16 +524,18 @@ document.addEventListener('DOMContentLoaded', () => {
         canvas.style.transform = `translate(${translateX}px, ${translateY}px) scale(${currentZoom})`;
     }
 
-    // Initialize controls visibility
-    function initializeControls() {
-        const controls = [changeImageBtn, deleteImageBtn, zoomInBtn, zoomOutBtn, resetZoomBtn, fullscreenBtn];
-        controls.forEach(control => {
-            control.style.display = 'none';
-        });
-    }
+    // Prevent default touch behavior on canvas for zoom/pan
+    canvas.addEventListener('touchstart', (e) => {
+        if (e.touches.length === 2) {
+            e.preventDefault(); // Only prevent default for pinch zoom
+        }
+    }, { passive: false });
 
-    // Call initialize on load
-    initializeControls();
+    canvas.addEventListener('touchmove', (e) => {
+        if (e.touches.length === 2) {
+            e.preventDefault(); // Only prevent default for pinch zoom
+        }
+    }, { passive: false });
 
     // Initialize
     initializeSettings();
