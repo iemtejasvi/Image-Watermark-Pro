@@ -94,11 +94,6 @@ document.addEventListener('DOMContentLoaded', () => {
         enableBlur.checked = defaultSettings.blur;
         enableGradient.checked = defaultSettings.gradient;
         updateValueDisplays();
-        
-        // Force spacing input update on mobile
-        if (isMobile()) {
-            spacingInput.dispatchEvent(new Event('input'));
-        }
     }
 
     // Update value displays with debouncing
@@ -279,20 +274,44 @@ document.addEventListener('DOMContentLoaded', () => {
                     // Calculate dimensions to maintain aspect ratio
                     const imageAspectRatio = originalImage.width / originalImage.height;
                     
-                    // Always use original image dimensions for canvas
-                    canvas.width = originalImage.width;
-                    canvas.height = originalImage.height;
+                    let canvasWidth, canvasHeight;
                     
-                    // Set display size to fit container
-                    if (imageAspectRatio > 1) {
-                        // Landscape image
-                        canvas.style.width = `${containerWidth}px`;
-                        canvas.style.height = `${containerWidth / imageAspectRatio}px`;
+                    if (isMobile()) {
+                        // Mobile: use original image dimensions for canvas
+                        canvasWidth = originalImage.width;
+                        canvasHeight = originalImage.height;
+                        
+                        // Scale down for display while maintaining aspect ratio
+                        if (imageAspectRatio > 1) {
+                            // Landscape image
+                            const displayWidth = containerWidth;
+                            const displayHeight = containerWidth / imageAspectRatio;
+                            canvas.style.width = `${displayWidth}px`;
+                            canvas.style.height = `${displayHeight}px`;
+                        } else {
+                            // Portrait image
+                            const displayHeight = containerHeight;
+                            const displayWidth = containerHeight * imageAspectRatio;
+                            canvas.style.width = `${displayWidth}px`;
+                            canvas.style.height = `${displayHeight}px`;
+                        }
                     } else {
-                        // Portrait image
-                        canvas.style.height = `${containerHeight}px`;
-                        canvas.style.width = `${containerHeight * imageAspectRatio}px`;
+                        // Desktop: use original image dimensions with max constraints
+                        const maxWidth = Math.min(originalImage.width, containerWidth * 2);
+                        const maxHeight = Math.min(originalImage.height, containerHeight * 2);
+                        
+                        if (maxWidth / maxHeight > imageAspectRatio) {
+                            canvasHeight = maxHeight;
+                            canvasWidth = maxHeight * imageAspectRatio;
+                        } else {
+                            canvasWidth = maxWidth;
+                            canvasHeight = maxWidth / imageAspectRatio;
+                        }
                     }
+                    
+                    // Set canvas dimensions to match original image quality
+                    canvas.width = canvasWidth;
+                    canvas.height = canvasHeight;
                     
                     // Enable high-quality image rendering
                     ctx.imageSmoothingEnabled = true;
@@ -482,13 +501,7 @@ document.addEventListener('DOMContentLoaded', () => {
         tempCtx.textAlign = 'center';
         tempCtx.textBaseline = 'middle';
 
-        // Scale watermark size based on original image dimensions
-        const baseFontSize = fontSize;
-        const scaleFactor = Math.min(tempCanvas.width, tempCanvas.height) / 1000; // Adjust this divisor to control watermark size
-        const scaledFontSize = baseFontSize * scaleFactor;
-        tempCtx.font = `${scaledFontSize}px ${fontFamilySelect.value}`;
-
-        const spacingPx = scaledFontSize * spacing;
+        const spacingPx = fontSize * spacing;
         const diagonal = Math.sqrt(tempCanvas.width * tempCanvas.width + tempCanvas.height * tempCanvas.height);
         const numWatermarks = Math.ceil(diagonal / spacingPx) * 2;
 
@@ -526,7 +539,7 @@ document.addEventListener('DOMContentLoaded', () => {
             .then(blob => {
                 const url = URL.createObjectURL(blob);
                 link.href = url;
-                link.click();
+        link.click();
                 // Clean up
                 URL.revokeObjectURL(url);
             });
@@ -564,11 +577,20 @@ document.addEventListener('DOMContentLoaded', () => {
         return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
     }
 
+    // Update canvas transform with mobile support
+    function updateCanvasTransform() {
+        if (isMobile()) {
+            // On mobile, only apply zoom, not translation
+            canvas.style.transform = `scale(${currentZoom})`;
+        } else {
+        canvas.style.transform = `translate(${translateX}px, ${translateY}px) scale(${currentZoom})`;
+        }
+    }
+
     // Update touch event listeners
     if (isMobile()) {
         let initialDistance = 0;
         let initialZoom = 1;
-        let lastTouchDistance = 0;
 
         // Remove mouse event listeners on mobile
         canvas.removeEventListener('mousedown', handleMouseDown);
@@ -580,20 +602,18 @@ document.addEventListener('DOMContentLoaded', () => {
         canvas.addEventListener('touchstart', (e) => {
             if (e.touches.length === 2) {
                 // Pinch start
-                e.preventDefault();
                 initialDistance = Math.hypot(
                     e.touches[0].clientX - e.touches[1].clientX,
                     e.touches[0].clientY - e.touches[1].clientY
                 );
                 initialZoom = currentZoom;
-                lastTouchDistance = initialDistance;
             } else if (e.touches.length === 1) {
                 // Single touch start
                 isDragging = true;
                 startX = e.touches[0].clientX - translateX;
                 startY = e.touches[0].clientY - translateY;
             }
-        }, { passive: false });
+        }, { passive: true });
 
         canvas.addEventListener('touchmove', (e) => {
             if (e.touches.length === 2) {
@@ -603,13 +623,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     e.touches[0].clientX - e.touches[1].clientX,
                     e.touches[0].clientY - e.touches[1].clientY
                 );
-                
-                // Calculate zoom factor based on pinch distance change
-                const scale = currentDistance / lastTouchDistance;
-                currentZoom = Math.min(Math.max(currentZoom * scale, 0.5), 3);
-                lastTouchDistance = currentDistance;
-                
-                // Update canvas transform
+                const scale = currentDistance / initialDistance;
+                currentZoom = Math.min(Math.max(initialZoom * scale, 0.5), 3);
                 updateCanvasTransform();
             } else if (e.touches.length === 1 && isDragging) {
                 // Single touch move
@@ -620,27 +635,14 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }, { passive: false });
 
-        canvas.addEventListener('touchend', (e) => {
-            if (e.touches.length < 2) {
-                isDragging = false;
-                lastTouchDistance = 0;
-            }
+        canvas.addEventListener('touchend', () => {
+            isDragging = false;
         }, { passive: true });
 
         // Remove zoom button event listeners on mobile
         zoomInBtn.removeEventListener('click', () => {});
         zoomOutBtn.removeEventListener('click', () => {});
         resetZoomBtn.removeEventListener('click', () => {});
-    }
-
-    // Update canvas transform with mobile support
-    function updateCanvasTransform() {
-        if (isMobile()) {
-            // On mobile, apply both zoom and translation
-            canvas.style.transform = `translate(${translateX}px, ${translateY}px) scale(${currentZoom})`;
-        } else {
-            canvas.style.transform = `translate(${translateX}px, ${translateY}px) scale(${currentZoom})`;
-        }
     }
 
     // Initialize
