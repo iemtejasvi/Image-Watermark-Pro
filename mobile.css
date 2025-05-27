@@ -27,10 +27,6 @@
         max-height: 50vh !important;
         overflow: hidden !important;
         position: relative !important;
-        touch-action: none !important;
-        -webkit-overflow-scrolling: touch !important;
-        margin: 0 !important;
-        padding: 0 !important;
         z-index: 1 !important;
         display: flex !important;
         align-items: center !important;
@@ -38,13 +34,13 @@
         background-color: var(--secondary-color) !important;
     }
 
-    /* Fix canvas touch handling */
+    /* Fix canvas touch handling and enable pinch-to-zoom */
     canvas {
         width: 100% !important;
         height: 100% !important;
         max-height: 50vh !important;
         object-fit: contain !important;
-        touch-action: none !important;
+        touch-action: pinch-zoom pan-x pan-y !important;
         pointer-events: auto !important;
         z-index: 1 !important;
         display: block !important;
@@ -234,4 +230,4 @@
     #zoomIn, #zoomOut, #resetZoom {
         display: none !important;
     }
-} 
+}
