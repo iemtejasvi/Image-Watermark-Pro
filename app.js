@@ -478,13 +478,17 @@ document.addEventListener('DOMContentLoaded', () => {
     downloadBtn.addEventListener('click', () => {
         if (!originalImage) return;
         
+        // Prevent multiple clicks
+        if (downloadBtn.disabled) return;
+        downloadBtn.disabled = true;
+        
         try {
             // Create temporary canvas with original dimensions
             const tempCanvas = document.createElement('canvas');
             const tempCtx = tempCanvas.getContext('2d', {
                 alpha: true,
                 willReadFrequently: true,
-                desynchronized: true // Enable hardware acceleration
+                desynchronized: true
             });
             
             // Set dimensions to match original image exactly
@@ -558,17 +562,26 @@ document.addEventListener('DOMContentLoaded', () => {
             if (isMobile()) {
                 // For mobile, use a simpler approach to prevent freezing
                 const pngData = tempCanvas.toDataURL('image/png', 1.0);
-                const link = document.createElement('a');
-                link.download = 'watermarked-image.png';
-                link.href = pngData;
                 
                 // Create a temporary link and trigger download
                 const tempLink = document.createElement('a');
                 tempLink.href = pngData;
                 tempLink.download = 'watermarked-image.png';
+                
+                // Append to body, click, and remove immediately
                 document.body.appendChild(tempLink);
                 tempLink.click();
                 document.body.removeChild(tempLink);
+                
+                // Clean up
+                tempCanvas.width = 1;
+                tempCanvas.height = 1;
+                tempCtx.clearRect(0, 0, 1, 1);
+                
+                // Re-enable button after a short delay
+                setTimeout(() => {
+                    downloadBtn.disabled = false;
+                }, 100);
             } else {
                 // Desktop download with maximum quality
                 const link = document.createElement('a');
@@ -586,10 +599,18 @@ document.addEventListener('DOMContentLoaded', () => {
                         link.click();
                         // Clean up
                         URL.revokeObjectURL(url);
+                        downloadBtn.disabled = false;
+                    })
+                    .catch(() => {
+                        // Fallback to direct download if blob creation fails
+                        link.href = pngData;
+                        link.click();
+                        downloadBtn.disabled = false;
                     });
             }
         } catch (error) {
             console.error('Download error:', error);
+            downloadBtn.disabled = false;
         }
     });
 
