@@ -88,6 +88,7 @@ document.addEventListener('DOMContentLoaded', () => {
         spacingInput.value = defaultSettings.spacing;
         spacingInput.min = 5;
         spacingInput.max = 10;
+        spacingInput.step = 0.1;
         colorInput.value = defaultSettings.color;
         fontFamilySelect.value = defaultSettings.fontFamily;
         enableShadow.checked = defaultSettings.shadow;
@@ -277,23 +278,16 @@ document.addEventListener('DOMContentLoaded', () => {
                     let canvasWidth, canvasHeight;
                     
                     if (isMobile()) {
-                        // Mobile: use original image dimensions for canvas
-                        canvasWidth = originalImage.width;
-                        canvasHeight = originalImage.height;
-                        
-                        // Scale down for display while maintaining aspect ratio
+                        // Mobile: use device pixel ratio for better quality
+                        const dpr = window.devicePixelRatio || 1;
                         if (imageAspectRatio > 1) {
                             // Landscape image
-                            const displayWidth = containerWidth;
-                            const displayHeight = containerWidth / imageAspectRatio;
-                            canvas.style.width = `${displayWidth}px`;
-                            canvas.style.height = `${displayHeight}px`;
+                            canvasWidth = containerWidth * dpr;
+                            canvasHeight = (containerWidth / imageAspectRatio) * dpr;
                         } else {
                             // Portrait image
-                            const displayHeight = containerHeight;
-                            const displayWidth = containerHeight * imageAspectRatio;
-                            canvas.style.width = `${displayWidth}px`;
-                            canvas.style.height = `${displayHeight}px`;
+                            canvasHeight = containerHeight * dpr;
+                            canvasWidth = containerHeight * imageAspectRatio * dpr;
                         }
                     } else {
                         // Desktop: use original image dimensions with max constraints
@@ -309,7 +303,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         }
                     }
                     
-                    // Set canvas dimensions to match original image quality
+                    // Set canvas dimensions
                     canvas.width = canvasWidth;
                     canvas.height = canvasHeight;
                     
@@ -577,26 +571,11 @@ document.addEventListener('DOMContentLoaded', () => {
         return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
     }
 
-    // Update canvas transform with mobile support
-    function updateCanvasTransform() {
-        if (isMobile()) {
-            // On mobile, only apply zoom, not translation
-            canvas.style.transform = `scale(${currentZoom})`;
-        } else {
-        canvas.style.transform = `translate(${translateX}px, ${translateY}px) scale(${currentZoom})`;
-        }
-    }
-
     // Update touch event listeners
     if (isMobile()) {
         let initialDistance = 0;
         let initialZoom = 1;
-
-        // Remove mouse event listeners on mobile
-        canvas.removeEventListener('mousedown', handleMouseDown);
-        canvas.removeEventListener('mousemove', handleMouseMove);
-        canvas.removeEventListener('mouseup', handleMouseUp);
-        canvas.removeEventListener('mouseleave', handleMouseUp);
+        let lastTouchEnd = 0;
 
         // Add touch event listeners
         canvas.addEventListener('touchstart', (e) => {
@@ -635,14 +614,48 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }, { passive: false });
 
-        canvas.addEventListener('touchend', () => {
+        canvas.addEventListener('touchend', (e) => {
             isDragging = false;
+            
+            // Handle double tap for zoom reset
+            const now = Date.now();
+            if (now - lastTouchEnd < 300) {
+                currentZoom = 1;
+                translateX = 0;
+                translateY = 0;
+                updateCanvasTransform();
+            }
+            lastTouchEnd = now;
         }, { passive: true });
 
-        // Remove zoom button event listeners on mobile
-        zoomInBtn.removeEventListener('click', () => {});
-        zoomOutBtn.removeEventListener('click', () => {});
-        resetZoomBtn.removeEventListener('click', () => {});
+        // Keep zoom buttons for mobile
+        zoomInBtn.addEventListener('click', () => {
+            currentZoom = Math.min(currentZoom + 0.1, 3);
+            updateCanvasTransform();
+        });
+
+        zoomOutBtn.addEventListener('click', () => {
+            currentZoom = Math.max(currentZoom - 0.1, 0.5);
+            updateCanvasTransform();
+        });
+
+        resetZoomBtn.addEventListener('click', () => {
+            currentZoom = 1;
+            translateX = 0;
+            translateY = 0;
+            updateCanvasTransform();
+        });
+    }
+
+    // Update canvas transform with mobile support
+    function updateCanvasTransform() {
+        if (isMobile()) {
+            // On mobile, apply both zoom and translation
+            canvas.style.transform = `translate(${translateX}px, ${translateY}px) scale(${currentZoom})`;
+            canvas.style.transformOrigin = 'center center';
+        } else {
+            canvas.style.transform = `translate(${translateX}px, ${translateY}px) scale(${currentZoom})`;
+        }
     }
 
     // Initialize
