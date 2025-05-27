@@ -561,45 +561,50 @@ document.addEventListener('DOMContentLoaded', () => {
             // Handle mobile download differently
             if (isMobile()) {
                 // For mobile, use a more direct approach
-                tempCanvas.toBlob((blob) => {
-                    if (blob) {
-                        const url = URL.createObjectURL(blob);
-                        const a = document.createElement('a');
-                        a.style.display = 'none';
-                        a.href = url;
-                        a.download = 'watermarked-image.png';
-                        
-                        // Append to body, click, and remove immediately
-                        document.body.appendChild(a);
-                        a.click();
-                        
-                        // Clean up
-                        setTimeout(() => {
-                            document.body.removeChild(a);
-                            URL.revokeObjectURL(url);
-                            tempCanvas.width = 1;
-                            tempCanvas.height = 1;
-                            tempCtx.clearRect(0, 0, 1, 1);
-                            downloadBtn.disabled = false;
-                        }, 100);
-                    } else {
-                        // Fallback if blob creation fails
-                        const pngData = tempCanvas.toDataURL('image/png', 1.0);
-                        const a = document.createElement('a');
-                        a.style.display = 'none';
-                        a.href = pngData;
-                        a.download = 'watermarked-image.png';
-                        document.body.appendChild(a);
-                        a.click();
-                        setTimeout(() => {
-                            document.body.removeChild(a);
-                            tempCanvas.width = 1;
-                            tempCanvas.height = 1;
-                            tempCtx.clearRect(0, 0, 1, 1);
-                            downloadBtn.disabled = false;
-                        }, 100);
-                    }
-                }, 'image/png', 1.0);
+                const downloadImage = () => {
+                    const a = document.createElement('a');
+                    a.style.display = 'none';
+                    a.download = 'watermarked-image.png';
+                    
+                    // Create a new blob for each download
+                    tempCanvas.toBlob((blob) => {
+                        if (blob) {
+                            const url = URL.createObjectURL(blob);
+                            a.href = url;
+                            document.body.appendChild(a);
+                            a.click();
+                            
+                            // Clean up after download starts
+                            setTimeout(() => {
+                                document.body.removeChild(a);
+                                URL.revokeObjectURL(url);
+                                downloadBtn.disabled = false;
+                            }, 100);
+                        } else {
+                            // Fallback if blob creation fails
+                            const pngData = tempCanvas.toDataURL('image/png', 1.0);
+                            a.href = pngData;
+                            document.body.appendChild(a);
+                            a.click();
+                            
+                            // Clean up after download starts
+                            setTimeout(() => {
+                                document.body.removeChild(a);
+                                downloadBtn.disabled = false;
+                            }, 100);
+                        }
+                    }, 'image/png', 1.0);
+                };
+                
+                // Start download
+                downloadImage();
+                
+                // Clean up canvas after download starts
+                setTimeout(() => {
+                    tempCanvas.width = 1;
+                    tempCanvas.height = 1;
+                    tempCtx.clearRect(0, 0, 1, 1);
+                }, 100);
             } else {
                 // Desktop download with maximum quality
                 const link = document.createElement('a');
