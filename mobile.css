@@ -131,6 +131,10 @@
         padding: 0 !important;
         position: relative !important;
         transition: background 0.2s ease !important;
+        will-change: transform !important;
+        transform: translateZ(0) !important;
+        backface-visibility: hidden !important;
+        perspective: 1000px !important;
     }
 
     input[type="range"]:active {
@@ -152,6 +156,10 @@
         z-index: 2 !important;
         transform: translateY(0) !important;
         transition: transform 0.1s ease, box-shadow 0.1s ease !important;
+        will-change: transform !important;
+        transform: translateZ(0) !important;
+        backface-visibility: hidden !important;
+        perspective: 1000px !important;
     }
 
     input[type="range"]::-webkit-slider-thumb:active {
@@ -170,6 +178,10 @@
         position: relative !important;
         z-index: 2 !important;
         transition: transform 0.1s ease, box-shadow 0.1s ease !important;
+        will-change: transform !important;
+        transform: translateZ(0) !important;
+        backface-visibility: hidden !important;
+        perspective: 1000px !important;
     }
 
     input[type="range"]::-moz-range-thumb:active {

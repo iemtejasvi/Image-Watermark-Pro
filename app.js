@@ -98,10 +98,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Update value displays with debouncing
     function updateValueDisplays() {
-        opacityValue.textContent = `${opacityInput.value}%`;
-        fontSizeValue.textContent = `${fontSizeInput.value}px`;
-        rotationValue.textContent = `${rotationInput.value}°`;
-        spacingValue.textContent = `${spacingInput.value}x`;
+        requestAnimationFrame(() => {
+            opacityValue.textContent = `${opacityInput.value}%`;
+            fontSizeValue.textContent = `${fontSizeInput.value}px`;
+            rotationValue.textContent = `${rotationInput.value}°`;
+            spacingValue.textContent = `${spacingInput.value}x`;
+        });
     }
 
     // Optimize watermark drawing
@@ -524,7 +526,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Create download link with highest quality PNG
         const link = document.createElement('a');
-        link.download = 'watermarked-image.png';
+        const timestamp = Date.now();
+        link.download = `watermarked-image-${timestamp}.png`;
         
         // Use maximum quality settings for PNG export
         const quality = 1.0;
@@ -534,29 +537,94 @@ document.addEventListener('DOMContentLoaded', () => {
         tempCanvas.toBlob((blob) => {
             const url = URL.createObjectURL(blob);
             link.href = url;
+            document.body.appendChild(link);
             link.click();
+            document.body.removeChild(link);
             // Clean up
             setTimeout(() => URL.revokeObjectURL(url), 100);
         }, mimeType, quality);
     });
 
-    // Zoom functionality
-    zoomInBtn.addEventListener('click', () => {
-        currentZoom = Math.min(currentZoom + 0.1, 3);
-        updateCanvasTransform();
-    });
+    // Initialize zoom state
+    canvas.style.cursor = 'grab';
+    canvas.style.transformOrigin = 'center center';
+    canvas.style.willChange = 'transform';
+    canvas.style.transition = 'transform 0.2s ease-out';
 
-    zoomOutBtn.addEventListener('click', () => {
-        currentZoom = Math.max(currentZoom - 0.1, 0.5);
-        updateCanvasTransform();
-    });
+    // Ensure canvas container is properly set up
+    const canvasContainer = canvas.parentElement;
+    if (canvasContainer) {
+        canvasContainer.style.overflow = 'hidden';
+        canvasContainer.style.position = 'relative';
+        canvasContainer.style.width = '100%';
+        canvasContainer.style.height = '100%';
+    }
 
-    resetZoomBtn.addEventListener('click', () => {
-        currentZoom = 1;
-        translateX = 0;
-        translateY = 0;
-        updateCanvasTransform();
-    });
+    // Add debug styles
+    const style = document.createElement('style');
+    style.textContent = `
+        #canvas {
+            transform-origin: center center !important;
+            will-change: transform !important;
+            transition: transform 0.2s ease-out !important;
+        }
+        .canvas-zoomed {
+            transform: scale(var(--zoom-level)) !important;
+        }
+        .canvas-translated {
+            transform: translate3d(var(--translate-x), var(--translate-y), 0) scale(var(--zoom-level)) !important;
+        }
+    `;
+    document.head.appendChild(style);
+
+    function updateCanvasTransform() {
+        // Set CSS custom properties
+        canvas.style.setProperty('--zoom-level', currentZoom);
+        canvas.style.setProperty('--translate-x', `${translateX}px`);
+        canvas.style.setProperty('--translate-y', `${translateY}px`);
+        
+        // Remove any existing transform classes
+        canvas.classList.remove('canvas-zoomed', 'canvas-translated');
+        
+        // Add appropriate transform class
+        if (isMobile()) {
+            canvas.classList.add('canvas-zoomed');
+        } else {
+            canvas.classList.add('canvas-translated');
+        }
+        
+        // Force a reflow
+        canvas.offsetHeight;
+    }
+
+    // Add event listeners for zoom controls
+    if (zoomInBtn) {
+        zoomInBtn.addEventListener('click', () => {
+            currentZoom = Math.min(currentZoom + 0.2, 3);
+            updateCanvasTransform();
+        });
+    }
+    if (zoomOutBtn) {
+        zoomOutBtn.addEventListener('click', () => {
+            currentZoom = Math.max(currentZoom - 0.2, 0.5);
+            updateCanvasTransform();
+        });
+    }
+    if (resetZoomBtn) {
+        resetZoomBtn.addEventListener('click', () => {
+            currentZoom = 1;
+            translateX = 0;
+            translateY = 0;
+            // Force reset by removing all transforms first
+            canvas.style.transform = '';
+            canvas.classList.remove('canvas-zoomed', 'canvas-translated');
+            canvas.offsetHeight; // Force reflow
+            updateCanvasTransform();
+        });
+    }
+
+    // Initialize transform
+    updateCanvasTransform();
 
     // Fullscreen functionality
     fullscreenBtn.addEventListener('click', () => {
@@ -570,74 +638,6 @@ document.addEventListener('DOMContentLoaded', () => {
     // Mobile touch handling
     function isMobile() {
         return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-    }
-
-    // Update canvas transform with mobile support
-    function updateCanvasTransform() {
-        if (isMobile()) {
-            // On mobile, only apply zoom, not translation
-            canvas.style.transform = `scale(${currentZoom})`;
-        } else {
-            canvas.style.transform = `translate(${translateX}px, ${translateY}px) scale(${currentZoom})`;
-        }
-    }
-
-    // Update touch event listeners
-    if (isMobile()) {
-        let initialDistance = 0;
-        let initialZoom = 1;
-
-        // Remove mouse event listeners on mobile
-        canvas.removeEventListener('mousedown', handleMouseDown);
-        canvas.removeEventListener('mousemove', handleMouseMove);
-        canvas.removeEventListener('mouseup', handleMouseUp);
-        canvas.removeEventListener('mouseleave', handleMouseUp);
-
-        // Add touch event listeners
-        canvas.addEventListener('touchstart', (e) => {
-            if (e.touches.length === 2) {
-                // Pinch start
-                initialDistance = Math.hypot(
-                    e.touches[0].clientX - e.touches[1].clientX,
-                    e.touches[0].clientY - e.touches[1].clientY
-                );
-                initialZoom = currentZoom;
-            } else if (e.touches.length === 1) {
-                // Single touch start
-                isDragging = true;
-                startX = e.touches[0].clientX - translateX;
-                startY = e.touches[0].clientY - translateY;
-            }
-        }, { passive: true });
-
-        canvas.addEventListener('touchmove', (e) => {
-            if (e.touches.length === 2) {
-                // Pinch move
-                e.preventDefault();
-                const currentDistance = Math.hypot(
-                    e.touches[0].clientX - e.touches[1].clientX,
-                    e.touches[0].clientY - e.touches[1].clientY
-                );
-                const scale = currentDistance / initialDistance;
-                currentZoom = Math.min(Math.max(initialZoom * scale, 0.5), 3);
-                updateCanvasTransform();
-            } else if (e.touches.length === 1 && isDragging) {
-                // Single touch move
-                e.preventDefault();
-                translateX = e.touches[0].clientX - startX;
-                translateY = e.touches[0].clientY - startY;
-                updateCanvasTransform();
-            }
-        }, { passive: false });
-
-        canvas.addEventListener('touchend', () => {
-            isDragging = false;
-        }, { passive: true });
-
-        // Remove zoom button event listeners on mobile
-        zoomInBtn.removeEventListener('click', () => {});
-        zoomOutBtn.removeEventListener('click', () => {});
-        resetZoomBtn.removeEventListener('click', () => {});
     }
 
     // Initialize
