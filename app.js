@@ -571,17 +571,46 @@ document.addEventListener('DOMContentLoaded', () => {
                     .then(blob => {
                         const url = URL.createObjectURL(blob);
                         link.href = url;
-                        link.click();
-                        // Clean up
-                        URL.revokeObjectURL(url);
-                        // Reset button state
-                        downloadBtn.disabled = false;
-                        downloadBtn.textContent = originalText;
+                        
+                        // Handle mobile download
+                        if (isMobile()) {
+                            // Create a temporary link and trigger download
+                            const tempLink = document.createElement('a');
+                            tempLink.href = url;
+                            tempLink.download = 'watermarked-image.png';
+                            document.body.appendChild(tempLink);
+                            tempLink.click();
+                            document.body.removeChild(tempLink);
+                            
+                            // Clean up
+                            setTimeout(() => {
+                                URL.revokeObjectURL(url);
+                                downloadBtn.disabled = false;
+                                downloadBtn.textContent = originalText;
+                            }, 100);
+                        } else {
+                            // Desktop download
+                            link.click();
+                            // Clean up
+                            URL.revokeObjectURL(url);
+                            downloadBtn.disabled = false;
+                            downloadBtn.textContent = originalText;
+                        }
                     })
                     .catch(error => {
                         console.error('Download error:', error);
                         downloadBtn.disabled = false;
                         downloadBtn.textContent = originalText;
+                        
+                        // Fallback for mobile
+                        if (isMobile()) {
+                            const fallbackLink = document.createElement('a');
+                            fallbackLink.href = pngData;
+                            fallbackLink.download = 'watermarked-image.png';
+                            document.body.appendChild(fallbackLink);
+                            fallbackLink.click();
+                            document.body.removeChild(fallbackLink);
+                        }
                     });
             } catch (error) {
                 console.error('Processing error:', error);
