@@ -56,112 +56,112 @@
                     <div class="image-info">
                         <span id="imageDimensions">No image loaded</span>
                         <span id="imageSize">0 KB</span>
-                    </div>
-                </div>
-
-                <div class="controls">
-                    <div class="control-group">
-                        <label for="watermarkText">Watermark Text:</label>
-                        <div class="input-with-icon">
-                            <i class="fas fa-font"></i>
-                            <input type="text" id="watermarkText" value="WATERMARK">
                         </div>
                     </div>
 
-                    <div class="control-group">
-                        <label for="opacity">Opacity: <span id="opacityValue">40%</span></label>
-                        <input type="range" id="opacity" min="0" max="100" value="40">
-                    </div>
+                    <div class="controls">
+                        <div class="control-group">
+                            <label for="watermarkText">Watermark Text:</label>
+                            <div class="input-with-icon">
+                                <i class="fas fa-font"></i>
+                                <input type="text" id="watermarkText" value="WATERMARK">
+                            </div>
+                        </div>
 
-                    <div class="control-group">
-                        <label for="fontSize">Font Size: <span id="fontSizeValue">24px</span></label>
-                        <input type="range" id="fontSize" min="10" max="50" value="24">
-                    </div>
+                        <div class="control-group">
+                            <label for="opacity">Opacity: <span id="opacityValue">40%</span></label>
+                            <input type="range" id="opacity" min="0" max="100" value="40">
+                        </div>
 
-                    <div class="control-group">
-                        <label for="rotation">Rotation: <span id="rotationValue">45°</span></label>
-                        <input type="range" id="rotation" min="-180" max="180" value="45">
-                    </div>
+                        <div class="control-group">
+                            <label for="fontSize">Font Size: <span id="fontSizeValue">24px</span></label>
+                            <input type="range" id="fontSize" min="10" max="50" value="24">
+                        </div>
 
-                    <div class="control-group">
+                        <div class="control-group">
+                            <label for="rotation">Rotation: <span id="rotationValue">45°</span></label>
+                            <input type="range" id="rotation" min="-180" max="180" value="45">
+                        </div>
+
+                        <div class="control-group">
                         <label for="spacing">Spacing: <span id="spacingValue">5x</span></label>
                         <input type="range" id="spacing" min="1" max="10" step="0.5" value="5">
-                    </div>
+                        </div>
 
-                    <div class="control-group">
-                        <label for="color">Color:</label>
-                        <div class="color-picker">
-                            <input type="color" id="color" value="#ffffff">
-                            <button id="invertColor" class="icon-btn" title="Invert Color">
-                                <i class="fas fa-adjust"></i>
-                            </button>
-                            <button id="randomColor" class="icon-btn" title="Random Color">
-                                <i class="fas fa-random"></i>
-                            </button>
+                        <div class="control-group">
+                            <label for="color">Color:</label>
+                            <div class="color-picker">
+                                <input type="color" id="color" value="#ffffff">
+                                <button id="invertColor" class="icon-btn" title="Invert Color">
+                                    <i class="fas fa-adjust"></i>
+                                </button>
+                                <button id="randomColor" class="icon-btn" title="Random Color">
+                                    <i class="fas fa-random"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="control-group">
+                            <label>Pattern Style:</label>
+                            <div class="pattern-buttons">
+                                <button id="diagonal" class="pattern-btn active" title="Diagonal">
+                                    <i class="fas fa-slash"></i>
+                                </button>
+                                <button id="grid" class="pattern-btn" title="Grid">
+                                    <i class="fas fa-th"></i>
+                                </button>
+                                <button id="random" class="pattern-btn" title="Random">
+                                    <i class="fas fa-random"></i>
+                                </button>
+                                <button id="wave" class="pattern-btn" title="Wave">
+                                    <i class="fas fa-wave-square"></i>
+                                </button>
+                                <button id="spiral" class="pattern-btn" title="Spiral">
+                                    <i class="fas fa-circle-notch"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="control-group">
+                            <label>Font Style:</label>
+                            <select id="fontFamily" class="font-select">
+                                <option value="Roboto">Roboto</option>
+                                <option value="Arial">Arial</option>
+                                <option value="Times New Roman">Times New Roman</option>
+                                <option value="Courier New">Courier New</option>
+                                <option value="Playfair Display">Playfair Display</option>
+                            </select>
+                        </div>
+
+                        <div class="control-group">
+                            <label>Advanced Options:</label>
+                            <div class="advanced-options">
+                                <label class="toggle">
+                                    <input type="checkbox" id="enableShadow">
+                                    <span class="toggle-label">Text Shadow</span>
+                                </label>
+                                <label class="toggle">
+                                    <input type="checkbox" id="enableBlur">
+                                    <span class="toggle-label">Background Blur</span>
+                                </label>
+                                <label class="toggle">
+                                    <input type="checkbox" id="enableGradient">
+                                    <span class="toggle-label">Gradient Text</span>
+                                </label>
+                            </div>
                         </div>
                     </div>
 
-                    <div class="control-group">
-                        <label>Pattern Style:</label>
-                        <div class="pattern-buttons">
-                            <button id="diagonal" class="pattern-btn active" title="Diagonal">
-                                <i class="fas fa-slash"></i>
-                            </button>
-                            <button id="grid" class="pattern-btn" title="Grid">
-                                <i class="fas fa-th"></i>
-                            </button>
-                            <button id="random" class="pattern-btn" title="Random">
-                                <i class="fas fa-random"></i>
-                            </button>
-                            <button id="wave" class="pattern-btn" title="Wave">
-                                <i class="fas fa-wave-square"></i>
-                            </button>
-                            <button id="spiral" class="pattern-btn" title="Spiral">
-                                <i class="fas fa-circle-notch"></i>
-                            </button>
-                        </div>
-                    </div>
-
-                    <div class="control-group">
-                        <label>Font Style:</label>
-                        <select id="fontFamily" class="font-select">
-                            <option value="Roboto">Roboto</option>
-                            <option value="Arial">Arial</option>
-                            <option value="Times New Roman">Times New Roman</option>
-                            <option value="Courier New">Courier New</option>
-                            <option value="Playfair Display">Playfair Display</option>
-                        </select>
-                    </div>
-
-                    <div class="control-group">
-                        <label>Advanced Options:</label>
-                        <div class="advanced-options">
-                            <label class="toggle">
-                                <input type="checkbox" id="enableShadow">
-                                <span class="toggle-label">Text Shadow</span>
-                            </label>
-                            <label class="toggle">
-                                <input type="checkbox" id="enableBlur">
-                                <span class="toggle-label">Background Blur</span>
-                            </label>
-                            <label class="toggle">
-                                <input type="checkbox" id="enableGradient">
-                                <span class="toggle-label">Gradient Text</span>
-                            </label>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="action-buttons">
-                    <button id="downloadBtn" class="primary-btn" disabled>
-                        <i class="fas fa-download"></i> Download Watermarked Image
-                    </button>
-                    <button id="resetBtn" class="secondary-btn">
-                        <i class="fas fa-redo"></i> Reset Settings
-                    </button>
-                    <button id="savePresetBtn" class="secondary-btn">
-                        <i class="fas fa-save"></i> Save Preset
-                    </button>
+                    <div class="action-buttons">
+                        <button id="downloadBtn" class="primary-btn" disabled>
+                            <i class="fas fa-download"></i> Download Watermarked Image
+                        </button>
+                        <button id="resetBtn" class="secondary-btn">
+                            <i class="fas fa-redo"></i> Reset Settings
+                        </button>
+                        <button id="savePresetBtn" class="secondary-btn">
+                            <i class="fas fa-save"></i> Save Preset
+                        </button>
                 </div>
             </div>
 

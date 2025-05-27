@@ -55,37 +55,13 @@ document.addEventListener('DOMContentLoaded', () => {
     signature.setAttribute('data-signature', signatureText);
     signature.textContent = `${String.fromCharCode(...builtWithHex.match(/.{1,2}/g).map(byte => parseInt(byte, 16)))}${String.fromCharCode(parseInt(heartHex, 16))} ${String.fromCharCode(...signatureHex.match(/.{1,2}/g).map(byte => parseInt(byte, 16)))}`;
 
-    // Optimize slider performance with requestAnimationFrame and throttling
-    let sliderRAF = null;
-    let lastSliderUpdate = 0;
-    const SLIDER_THROTTLE = 16; // ~60fps
-
+    // Optimize slider performance with requestAnimationFrame
+    let sliderTimeout;
     function debounceSlider(callback) {
-        if (sliderRAF) {
-            cancelAnimationFrame(sliderRAF);
+        if (sliderTimeout) {
+            cancelAnimationFrame(sliderTimeout);
         }
-        
-        const now = performance.now();
-        if (now - lastSliderUpdate >= SLIDER_THROTTLE) {
-            lastSliderUpdate = now;
-            sliderRAF = requestAnimationFrame(callback);
-        } else {
-            sliderRAF = requestAnimationFrame(() => {
-                lastSliderUpdate = performance.now();
-                callback();
-            });
-        }
-    }
-
-    // Optimize watermark drawing with offscreen canvas
-    let offscreenCanvas = null;
-    let offscreenCtx = null;
-
-    function initializeOffscreenCanvas() {
-        if (!offscreenCanvas) {
-            offscreenCanvas = new OffscreenCanvas(1, 1);
-            offscreenCtx = offscreenCanvas.getContext('2d');
-        }
+        sliderTimeout = requestAnimationFrame(callback);
     }
 
     // Default settings
@@ -110,6 +86,8 @@ document.addEventListener('DOMContentLoaded', () => {
         fontSizeInput.value = defaultSettings.fontSize;
         rotationInput.value = defaultSettings.rotation;
         spacingInput.value = defaultSettings.spacing;
+        spacingInput.min = 5;
+        spacingInput.max = 10;
         colorInput.value = defaultSettings.color;
         fontFamilySelect.value = defaultSettings.fontFamily;
         enableShadow.checked = defaultSettings.shadow;
@@ -132,23 +110,19 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Use requestAnimationFrame for smooth rendering
         requestAnimationFrame(() => {
-            // Initialize offscreen canvas if needed
-            initializeOffscreenCanvas();
-
-            // Set canvas size to match image
-            canvas.width = originalImage.width;
-            canvas.height = originalImage.height;
-            offscreenCanvas.width = originalImage.width;
-            offscreenCanvas.height = originalImage.height;
-
-            // Clear canvas and draw original image
-            offscreenCtx.clearRect(0, 0, offscreenCanvas.width, offscreenCanvas.height);
+            // Clear canvas
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
             
+            // Enable high-quality image rendering
+            ctx.imageSmoothingEnabled = true;
+            ctx.imageSmoothingQuality = 'high';
+            
+            // Draw original image at full quality
             if (enableBlur.checked) {
-                offscreenCtx.filter = 'blur(5px)';
+                ctx.filter = 'blur(5px)';
             }
-            offscreenCtx.drawImage(originalImage, 0, 0);
-            offscreenCtx.filter = 'none';
+            ctx.drawImage(originalImage, 0, 0, canvas.width, canvas.height);
+            ctx.filter = 'none';
 
             // Set watermark properties
             const fontSize = parseInt(fontSizeInput.value);
@@ -158,58 +132,53 @@ document.addEventListener('DOMContentLoaded', () => {
             const text = watermarkText.value;
             const color = colorInput.value;
 
-            offscreenCtx.save();
-            offscreenCtx.globalAlpha = opacity;
-            offscreenCtx.font = `${fontSize}px ${fontFamilySelect.value}`;
+            ctx.save();
+            ctx.globalAlpha = opacity;
+            ctx.font = `${fontSize}px ${fontFamilySelect.value}`;
             
             if (enableGradient.checked) {
-                const gradient = offscreenCtx.createLinearGradient(0, 0, offscreenCanvas.width, offscreenCanvas.height);
+                const gradient = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
                 gradient.addColorStop(0, color);
                 gradient.addColorStop(1, invertColor(color));
-                offscreenCtx.fillStyle = gradient;
+                ctx.fillStyle = gradient;
             } else {
-                offscreenCtx.fillStyle = color;
+                ctx.fillStyle = color;
             }
 
             if (enableShadow.checked) {
-                offscreenCtx.shadowColor = 'rgba(0, 0, 0, 0.5)';
-                offscreenCtx.shadowBlur = 5;
-                offscreenCtx.shadowOffsetX = 2;
-                offscreenCtx.shadowOffsetY = 2;
+                ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
+                ctx.shadowBlur = 5;
+                ctx.shadowOffsetX = 2;
+                ctx.shadowOffsetY = 2;
             }
 
-            offscreenCtx.textAlign = 'center';
-            offscreenCtx.textBaseline = 'middle';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
 
             const spacingPx = fontSize * spacing;
-            const diagonal = Math.sqrt(offscreenCanvas.width * offscreenCanvas.width + offscreenCanvas.height * offscreenCanvas.height);
+            const diagonal = Math.sqrt(canvas.width * canvas.width + canvas.height * canvas.height);
             const numWatermarks = Math.ceil(diagonal / spacingPx) * 2;
 
             // Draw watermark pattern
             switch (currentPattern) {
                 case 'diagonal':
-                    drawDiagonalPattern(numWatermarks, spacingPx, rotation, text, offscreenCtx, offscreenCanvas);
+                    drawDiagonalPattern(numWatermarks, spacingPx, rotation, text, ctx, canvas);
                     break;
                 case 'grid':
-                    drawGridPattern(numWatermarks, spacingPx, rotation, text, offscreenCtx, offscreenCanvas);
+                    drawGridPattern(numWatermarks, spacingPx, rotation, text, ctx, canvas);
                     break;
                 case 'random':
-                    drawRandomPattern(numWatermarks, spacingPx, rotation, text, offscreenCtx, offscreenCanvas);
+                    drawRandomPattern(numWatermarks, spacingPx, rotation, text, ctx, canvas);
                     break;
                 case 'wave':
-                    drawWavePattern(numWatermarks, spacingPx, rotation, text, offscreenCtx, offscreenCanvas);
+                    drawWavePattern(numWatermarks, spacingPx, rotation, text, ctx, canvas);
                     break;
                 case 'spiral':
-                    drawSpiralPattern(numWatermarks, spacingPx, rotation, text, offscreenCtx, offscreenCanvas);
+                    drawSpiralPattern(numWatermarks, spacingPx, rotation, text, ctx, canvas);
                     break;
             }
 
-            offscreenCtx.restore();
-
-            // Copy from offscreen canvas to main canvas
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            ctx.drawImage(offscreenCanvas, 0, 0);
-            
+            ctx.restore();
             downloadBtn.disabled = false;
         });
     }
@@ -297,12 +266,60 @@ document.addEventListener('DOMContentLoaded', () => {
             reader.onload = (event) => {
                 originalImage = new Image();
                 originalImage.onload = () => {
+                    // Set canvas size to match container while maintaining aspect ratio
+                    const container = document.querySelector('.preview-container');
+                    const containerWidth = container.clientWidth;
+                    const containerHeight = container.clientHeight;
+                    
+                    // Calculate dimensions to maintain aspect ratio
+                    const imageAspectRatio = originalImage.width / originalImage.height;
+                    
+                    let canvasWidth, canvasHeight;
+                    
+                    if (isMobile()) {
+                        // Mobile: fit to container while maintaining aspect ratio
+                        if (imageAspectRatio > 1) {
+                            // Landscape image
+                            canvasWidth = containerWidth;
+                            canvasHeight = containerWidth / imageAspectRatio;
+                        } else {
+                            // Portrait image
+                            canvasHeight = containerHeight;
+                            canvasWidth = containerHeight * imageAspectRatio;
+                        }
+                    } else {
+                        // Desktop: use original image dimensions with max constraints
+                        const maxWidth = Math.min(originalImage.width, containerWidth * 2);
+                        const maxHeight = Math.min(originalImage.height, containerHeight * 2);
+                        
+                        if (maxWidth / maxHeight > imageAspectRatio) {
+                            canvasHeight = maxHeight;
+                            canvasWidth = maxHeight * imageAspectRatio;
+                        } else {
+                            canvasWidth = maxWidth;
+                            canvasHeight = maxWidth / imageAspectRatio;
+                        }
+                    }
+                    
+                    // Set canvas dimensions to match original image quality
+                    canvas.width = originalImage.width;
+                    canvas.height = originalImage.height;
+                    
+                    // Enable high-quality image rendering
+                    ctx.imageSmoothingEnabled = true;
+                    ctx.imageSmoothingQuality = 'high';
+                    
+                    // Update image info
                     imageDimensions.textContent = `${originalImage.width} × ${originalImage.height}`;
                     imageSize.textContent = `${(file.size / 1024).toFixed(1)} KB`;
+                    
+                    // Show controls
                     uploadOverlay.classList.add('hidden');
                     changeImageBtn.style.display = 'flex';
                     deleteImageBtn.style.display = 'flex';
                     dropZone.classList.add('has-image');
+                    
+                    // Draw watermark
                     drawWatermark();
                 };
                 originalImage.src = event.target.result;
@@ -322,6 +339,8 @@ document.addEventListener('DOMContentLoaded', () => {
         deleteImageBtn.style.display = 'none';
         dropZone.classList.remove('has-image');
         downloadBtn.disabled = true;
+        // Clear the file input value
+        imageInput.value = '';
     }
 
     // Event Listeners
@@ -430,13 +449,17 @@ document.addEventListener('DOMContentLoaded', () => {
     downloadBtn.addEventListener('click', () => {
         // Create a temporary canvas to maintain original dimensions
         const tempCanvas = document.createElement('canvas');
-        const tempCtx = tempCanvas.getContext('2d', { alpha: true });
+        const tempCtx = tempCanvas.getContext('2d', { alpha: true, willReadFrequently: true });
         
-        // Set dimensions to match original image
+        // Set dimensions to match original image exactly
         tempCanvas.width = originalImage.width;
         tempCanvas.height = originalImage.height;
         
-        // Draw original image
+        // Enable high-quality rendering
+        tempCtx.imageSmoothingEnabled = true;
+        tempCtx.imageSmoothingQuality = 'high';
+        
+        // Draw original image at full quality
         tempCtx.drawImage(originalImage, 0, 0);
         
         // Apply watermark with original dimensions
@@ -498,8 +521,20 @@ document.addEventListener('DOMContentLoaded', () => {
         // Create download link with highest quality PNG
         const link = document.createElement('a');
         link.download = 'watermarked-image.png';
-        link.href = tempCanvas.toDataURL('image/png', 1.0);
-        link.click();
+        
+        // Use maximum quality PNG encoding
+        const pngData = tempCanvas.toDataURL('image/png', 1.0);
+        
+        // Create a blob for better quality
+        fetch(pngData)
+            .then(res => res.blob())
+            .then(blob => {
+                const url = URL.createObjectURL(blob);
+                link.href = url;
+                link.click();
+                // Clean up
+                URL.revokeObjectURL(url);
+            });
     });
 
     // Zoom functionality
@@ -529,64 +564,77 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // Mobile touch handling with pinch zoom
-    let initialDistance = 0;
-    let initialZoom = 1;
-
-    function getDistance(touch1, touch2) {
-        const dx = touch1.clientX - touch2.clientX;
-        const dy = touch1.clientY - touch2.clientY;
-        return Math.sqrt(dx * dx + dy * dy);
-    }
-
-    function handleTouchStart(e) {
-        if (e.touches.length === 2) {
-            // Pinch zoom start
-            initialDistance = getDistance(e.touches[0], e.touches[1]);
-            initialZoom = currentZoom;
-            e.preventDefault();
-        } else if (e.touches.length === 1) {
-            // Single touch drag
-            isDragging = true;
-            startX = e.touches[0].clientX - translateX;
-            startY = e.touches[0].clientY - translateY;
-        }
-    }
-
-    function handleTouchMove(e) {
-        if (e.touches.length === 2) {
-            // Pinch zoom
-            const currentDistance = getDistance(e.touches[0], e.touches[1]);
-            const scale = currentDistance / initialDistance;
-            currentZoom = Math.min(Math.max(initialZoom * scale, 0.5), 3);
-            updateCanvasTransform();
-            e.preventDefault();
-        } else if (isDragging && e.touches.length === 1) {
-            // Single touch drag
-            translateX = e.touches[0].clientX - startX;
-            translateY = e.touches[0].clientY - startY;
-            updateCanvasTransform();
-        }
-    }
-
-    function handleTouchEnd() {
-        isDragging = false;
-        initialDistance = 0;
+    // Mobile touch handling
+    function isMobile() {
+        return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
     }
 
     // Update canvas transform with mobile support
     function updateCanvasTransform() {
         if (isMobile()) {
-            canvas.style.transform = `translate(${translateX}px, ${translateY}px) scale(${currentZoom})`;
-            canvas.style.transformOrigin = 'center center';
+            // On mobile, only apply zoom, not translation
+            canvas.style.transform = `scale(${currentZoom})`;
         } else {
             canvas.style.transform = `translate(${translateX}px, ${translateY}px) scale(${currentZoom})`;
         }
     }
 
-    // Mobile touch handling
-    function isMobile() {
-        return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    // Update touch event listeners
+    if (isMobile()) {
+        let initialDistance = 0;
+        let initialZoom = 1;
+
+        // Remove mouse event listeners on mobile
+        canvas.removeEventListener('mousedown', handleMouseDown);
+        canvas.removeEventListener('mousemove', handleMouseMove);
+        canvas.removeEventListener('mouseup', handleMouseUp);
+        canvas.removeEventListener('mouseleave', handleMouseUp);
+
+        // Add touch event listeners
+        canvas.addEventListener('touchstart', (e) => {
+            if (e.touches.length === 2) {
+                // Pinch start
+                initialDistance = Math.hypot(
+                    e.touches[0].clientX - e.touches[1].clientX,
+                    e.touches[0].clientY - e.touches[1].clientY
+                );
+                initialZoom = currentZoom;
+            } else if (e.touches.length === 1) {
+                // Single touch start
+                isDragging = true;
+                startX = e.touches[0].clientX - translateX;
+                startY = e.touches[0].clientY - translateY;
+            }
+        }, { passive: true });
+
+        canvas.addEventListener('touchmove', (e) => {
+            if (e.touches.length === 2) {
+                // Pinch move
+                e.preventDefault();
+                const currentDistance = Math.hypot(
+                    e.touches[0].clientX - e.touches[1].clientX,
+                    e.touches[0].clientY - e.touches[1].clientY
+                );
+                const scale = currentDistance / initialDistance;
+                currentZoom = Math.min(Math.max(initialZoom * scale, 0.5), 3);
+                updateCanvasTransform();
+            } else if (e.touches.length === 1 && isDragging) {
+                // Single touch move
+                e.preventDefault();
+                translateX = e.touches[0].clientX - startX;
+                translateY = e.touches[0].clientY - startY;
+                updateCanvasTransform();
+            }
+        }, { passive: false });
+
+        canvas.addEventListener('touchend', () => {
+            isDragging = false;
+        }, { passive: true });
+
+        // Remove zoom button event listeners on mobile
+        zoomInBtn.removeEventListener('click', () => {});
+        zoomOutBtn.removeEventListener('click', () => {});
+        resetZoomBtn.removeEventListener('click', () => {});
     }
 
     // Initialize
