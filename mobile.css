@@ -8,6 +8,7 @@
         height: auto !important;
         overflow-y: auto !important;
         -webkit-overflow-scrolling: touch !important;
+        padding: 0.5rem !important;
     }
 
     /* Fix preview container and scrolling */
@@ -36,8 +37,8 @@
         justify-content: center !important;
         background-color: var(--secondary-color) !important;
         will-change: transform !important;
-        transform: translateZ(0) !important;
-        -webkit-transform: translateZ(0) !important;
+        transform: translate3d(0, 0, 0) !important;
+        -webkit-transform: translate3d(0, 0, 0) !important;
     }
 
     /* Fix canvas touch handling */
@@ -57,8 +58,8 @@
         image-rendering: -webkit-optimize-contrast !important;
         image-rendering: crisp-edges !important;
         will-change: transform !important;
-        transform: translateZ(0) !important;
-        -webkit-transform: translateZ(0) !important;
+        transform: translate3d(0, 0, 0) !important;
+        -webkit-transform: translate3d(0, 0, 0) !important;
         backface-visibility: hidden !important;
         -webkit-backface-visibility: hidden !important;
     }
@@ -119,6 +120,11 @@
         font-size: 0.9rem !important;
     }
 
+    /* Hide zoom controls on mobile */
+    #zoomIn, #zoomOut, #resetZoom {
+        display: none !important;
+    }
+
     /* Fix slider appearance and alignment */
     input[type="range"] {
         -webkit-appearance: none !important;
@@ -131,6 +137,7 @@
         padding: 0 !important;
         position: relative !important;
         transition: background 0.2s ease !important;
+        touch-action: pan-x !important;
     }
 
     input[type="range"]:active {
@@ -152,6 +159,7 @@
         z-index: 2 !important;
         transform: translateY(0) !important;
         transition: transform 0.1s ease, box-shadow 0.1s ease !important;
+        touch-action: pan-x !important;
     }
 
     input[type="range"]::-webkit-slider-thumb:active {
@@ -222,6 +230,9 @@
         margin-top: 1rem !important;
         position: relative !important;
         z-index: 1 !important;
+        transform: translate3d(0, 0, 0) !important;
+        -webkit-transform: translate3d(0, 0, 0) !important;
+        will-change: transform !important;
     }
 
     .control-group {
@@ -239,6 +250,9 @@
     .primary-btn, .secondary-btn {
         width: 100% !important;
         min-height: 44px !important;
+        transform: translate3d(0, 0, 0) !important;
+        -webkit-transform: translate3d(0, 0, 0) !important;
+        will-change: transform !important;
     }
 
     /* Ensure body and container allow scrolling */
@@ -248,6 +262,8 @@
         position: relative !important;
         height: auto !important;
         min-height: 100vh !important;
+        padding: 0 !important;
+        margin: 0 !important;
     }
 
     .container {
@@ -255,11 +271,8 @@
         -webkit-overflow-scrolling: touch !important;
         height: auto !important;
         min-height: 100vh !important;
-    }
-
-    /* Show zoom controls on mobile */
-    #zoomIn, #zoomOut, #resetZoom {
-        display: flex !important;
+        padding: 0.5rem !important;
+        margin: 0 !important;
     }
 }
 

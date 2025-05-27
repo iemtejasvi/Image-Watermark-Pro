@@ -99,10 +99,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Update value displays with debouncing
     function updateValueDisplays() {
-        opacityValue.textContent = `${opacityInput.value}%`;
-        fontSizeValue.textContent = `${fontSizeInput.value}px`;
-        rotationValue.textContent = `${rotationInput.value}°`;
-        spacingValue.textContent = `${spacingInput.value}x`;
+        requestAnimationFrame(() => {
+            opacityValue.textContent = `${opacityInput.value}%`;
+            fontSizeValue.textContent = `${fontSizeInput.value}px`;
+            rotationValue.textContent = `${rotationInput.value}°`;
+            spacingValue.textContent = `${spacingInput.value}x`;
+        });
     }
 
     // Optimize watermark drawing
@@ -377,10 +379,21 @@ document.addEventListener('DOMContentLoaded', () => {
     // Optimize control changes with debouncing
     [watermarkText, opacityInput, fontSizeInput, rotationInput, spacingInput, colorInput, fontFamilySelect].forEach(control => {
         control.addEventListener('input', () => {
-            debounceSlider(() => {
-                updateValueDisplays();
-                drawWatermark();
-            });
+            if (isMobile()) {
+                // On mobile, use a more aggressive debounce
+                if (sliderTimeout) {
+                    cancelAnimationFrame(sliderTimeout);
+                }
+                sliderTimeout = requestAnimationFrame(() => {
+                    updateValueDisplays();
+                    drawWatermark();
+                });
+            } else {
+                debounceSlider(() => {
+                    updateValueDisplays();
+                    drawWatermark();
+                });
+            }
         });
     });
 
@@ -449,94 +462,109 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Optimize download functionality for highest quality
     downloadBtn.addEventListener('click', () => {
-        // Create a temporary canvas to maintain original dimensions
-        const tempCanvas = document.createElement('canvas');
-        const tempCtx = tempCanvas.getContext('2d', { alpha: true, willReadFrequently: true });
-        
-        // Set dimensions to match original image exactly
-        tempCanvas.width = originalImage.width;
-        tempCanvas.height = originalImage.height;
-        
-        // Enable high-quality rendering
-        tempCtx.imageSmoothingEnabled = true;
-        tempCtx.imageSmoothingQuality = 'high';
-        
-        // Draw original image at full quality
-        tempCtx.drawImage(originalImage, 0, 0);
-        
-        // Apply watermark with original dimensions
-        const fontSize = parseInt(fontSizeInput.value);
-        const opacity = parseInt(opacityInput.value) / 100;
-        const rotation = parseInt(rotationInput.value);
-        const spacing = parseFloat(spacingInput.value);
-        const text = watermarkText.value;
-        const color = colorInput.value;
+        // Show loading state
+        downloadBtn.disabled = true;
+        downloadBtn.textContent = 'Processing...';
 
-        tempCtx.save();
-        tempCtx.globalAlpha = opacity;
-        tempCtx.font = `${fontSize}px ${fontFamilySelect.value}`;
-        
-        if (enableGradient.checked) {
-            const gradient = tempCtx.createLinearGradient(0, 0, tempCanvas.width, tempCanvas.height);
-            gradient.addColorStop(0, color);
-            gradient.addColorStop(1, invertColor(color));
-            tempCtx.fillStyle = gradient;
-        } else {
-            tempCtx.fillStyle = color;
-        }
+        // Use requestAnimationFrame to prevent UI freezing
+        requestAnimationFrame(() => {
+            // Create a temporary canvas to maintain original dimensions
+            const tempCanvas = document.createElement('canvas');
+            const tempCtx = tempCanvas.getContext('2d', { alpha: true, willReadFrequently: true });
+            
+            // Set dimensions to match original image exactly
+            tempCanvas.width = originalImage.width;
+            tempCanvas.height = originalImage.height;
+            
+            // Enable high-quality rendering
+            tempCtx.imageSmoothingEnabled = true;
+            tempCtx.imageSmoothingQuality = 'high';
+            
+            // Draw original image at full quality
+            tempCtx.drawImage(originalImage, 0, 0);
+            
+            // Apply watermark with original dimensions
+            const fontSize = parseInt(fontSizeInput.value);
+            const opacity = parseInt(opacityInput.value) / 100;
+            const rotation = parseInt(rotationInput.value);
+            const spacing = parseFloat(spacingInput.value);
+            const text = watermarkText.value;
+            const color = colorInput.value;
 
-        if (enableShadow.checked) {
-            tempCtx.shadowColor = 'rgba(0, 0, 0, 0.5)';
-            tempCtx.shadowBlur = 5;
-            tempCtx.shadowOffsetX = 2;
-            tempCtx.shadowOffsetY = 2;
-        }
+            tempCtx.save();
+            tempCtx.globalAlpha = opacity;
+            tempCtx.font = `${fontSize}px ${fontFamilySelect.value}`;
+            
+            if (enableGradient.checked) {
+                const gradient = tempCtx.createLinearGradient(0, 0, tempCanvas.width, tempCanvas.height);
+                gradient.addColorStop(0, color);
+                gradient.addColorStop(1, invertColor(color));
+                tempCtx.fillStyle = gradient;
+            } else {
+                tempCtx.fillStyle = color;
+            }
 
-        tempCtx.textAlign = 'center';
-        tempCtx.textBaseline = 'middle';
+            if (enableShadow.checked) {
+                tempCtx.shadowColor = 'rgba(0, 0, 0, 0.5)';
+                tempCtx.shadowBlur = 5;
+                tempCtx.shadowOffsetX = 2;
+                tempCtx.shadowOffsetY = 2;
+            }
 
-        const spacingPx = fontSize * spacing;
-        const diagonal = Math.sqrt(tempCanvas.width * tempCanvas.width + tempCanvas.height * tempCanvas.height);
-        const numWatermarks = Math.ceil(diagonal / spacingPx) * 2;
+            tempCtx.textAlign = 'center';
+            tempCtx.textBaseline = 'middle';
 
-        // Draw watermark pattern
-        switch (currentPattern) {
-            case 'diagonal':
-                drawDiagonalPattern(numWatermarks, spacingPx, rotation, text, tempCtx, tempCanvas);
-                break;
-            case 'grid':
-                drawGridPattern(numWatermarks, spacingPx, rotation, text, tempCtx, tempCanvas);
-                break;
-            case 'random':
-                drawRandomPattern(numWatermarks, spacingPx, rotation, text, tempCtx, tempCanvas);
-                break;
-            case 'wave':
-                drawWavePattern(numWatermarks, spacingPx, rotation, text, tempCtx, tempCanvas);
-                break;
-            case 'spiral':
-                drawSpiralPattern(numWatermarks, spacingPx, rotation, text, tempCtx, tempCanvas);
-                break;
-        }
+            const spacingPx = fontSize * spacing;
+            const diagonal = Math.sqrt(tempCanvas.width * tempCanvas.width + tempCanvas.height * tempCanvas.height);
+            const numWatermarks = Math.ceil(diagonal / spacingPx) * 2;
 
-        tempCtx.restore();
+            // Draw watermark pattern
+            switch (currentPattern) {
+                case 'diagonal':
+                    drawDiagonalPattern(numWatermarks, spacingPx, rotation, text, tempCtx, tempCanvas);
+                    break;
+                case 'grid':
+                    drawGridPattern(numWatermarks, spacingPx, rotation, text, tempCtx, tempCanvas);
+                    break;
+                case 'random':
+                    drawRandomPattern(numWatermarks, spacingPx, rotation, text, tempCtx, tempCanvas);
+                    break;
+                case 'wave':
+                    drawWavePattern(numWatermarks, spacingPx, rotation, text, tempCtx, tempCanvas);
+                    break;
+                case 'spiral':
+                    drawSpiralPattern(numWatermarks, spacingPx, rotation, text, tempCtx, tempCanvas);
+                    break;
+            }
 
-        // Create download link with highest quality PNG
-        const link = document.createElement('a');
-        link.download = 'watermarked-image.png';
-        
-        // Use maximum quality PNG encoding
-        const pngData = tempCanvas.toDataURL('image/png', 1.0);
-        
-        // Create a blob for better quality
-        fetch(pngData)
-            .then(res => res.blob())
-            .then(blob => {
-                const url = URL.createObjectURL(blob);
-                link.href = url;
-        link.click();
-                // Clean up
-                URL.revokeObjectURL(url);
-            });
+            tempCtx.restore();
+
+            // Create download link with highest quality PNG
+            const link = document.createElement('a');
+            link.download = 'watermarked-image.png';
+            
+            // Use maximum quality PNG encoding
+            const pngData = tempCanvas.toDataURL('image/png', 1.0);
+            
+            // Create a blob for better quality
+            fetch(pngData)
+                .then(res => res.blob())
+                .then(blob => {
+                    const url = URL.createObjectURL(blob);
+                    link.href = url;
+                    link.click();
+                    // Clean up
+                    URL.revokeObjectURL(url);
+                    // Reset button state
+                    downloadBtn.disabled = false;
+                    downloadBtn.textContent = 'Download';
+                })
+                .catch(error => {
+                    console.error('Download error:', error);
+                    downloadBtn.disabled = false;
+                    downloadBtn.textContent = 'Download';
+                });
+        });
     });
 
     // Zoom functionality
@@ -576,11 +604,18 @@ document.addEventListener('DOMContentLoaded', () => {
         let initialDistance = 0;
         let initialZoom = 1;
         let lastTouchEnd = 0;
+        let lastScale = 1;
+
+        // Remove zoom buttons on mobile
+        zoomInBtn.style.display = 'none';
+        zoomOutBtn.style.display = 'none';
+        resetZoomBtn.style.display = 'none';
 
         // Add touch event listeners
         canvas.addEventListener('touchstart', (e) => {
             if (e.touches.length === 2) {
                 // Pinch start
+                e.preventDefault();
                 initialDistance = Math.hypot(
                     e.touches[0].clientX - e.touches[1].clientX,
                     e.touches[0].clientY - e.touches[1].clientY
@@ -592,7 +627,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 startX = e.touches[0].clientX - translateX;
                 startY = e.touches[0].clientY - translateY;
             }
-        }, { passive: true });
+        }, { passive: false });
 
         canvas.addEventListener('touchmove', (e) => {
             if (e.touches.length === 2) {
@@ -603,14 +638,25 @@ document.addEventListener('DOMContentLoaded', () => {
                     e.touches[0].clientY - e.touches[1].clientY
                 );
                 const scale = currentDistance / initialDistance;
-                currentZoom = Math.min(Math.max(initialZoom * scale, 0.5), 3);
-                updateCanvasTransform();
+                const newScale = initialZoom * scale;
+                
+                // Limit zoom range
+                currentZoom = Math.min(Math.max(newScale, 0.5), 3);
+                
+                // Update transform with hardware acceleration
+                requestAnimationFrame(() => {
+                    updateCanvasTransform();
+                });
             } else if (e.touches.length === 1 && isDragging) {
                 // Single touch move
                 e.preventDefault();
                 translateX = e.touches[0].clientX - startX;
                 translateY = e.touches[0].clientY - startY;
-                updateCanvasTransform();
+                
+                // Update transform with hardware acceleration
+                requestAnimationFrame(() => {
+                    updateCanvasTransform();
+                });
             }
         }, { passive: false });
 
@@ -623,38 +669,22 @@ document.addEventListener('DOMContentLoaded', () => {
                 currentZoom = 1;
                 translateX = 0;
                 translateY = 0;
-                updateCanvasTransform();
+                requestAnimationFrame(() => {
+                    updateCanvasTransform();
+                });
             }
             lastTouchEnd = now;
         }, { passive: true });
-
-        // Keep zoom buttons for mobile
-        zoomInBtn.addEventListener('click', () => {
-            currentZoom = Math.min(currentZoom + 0.1, 3);
-            updateCanvasTransform();
-        });
-
-        zoomOutBtn.addEventListener('click', () => {
-            currentZoom = Math.max(currentZoom - 0.1, 0.5);
-            updateCanvasTransform();
-        });
-
-        resetZoomBtn.addEventListener('click', () => {
-            currentZoom = 1;
-            translateX = 0;
-            translateY = 0;
-            updateCanvasTransform();
-        });
     }
 
     // Update canvas transform with mobile support
     function updateCanvasTransform() {
         if (isMobile()) {
-            // On mobile, apply both zoom and translation
-            canvas.style.transform = `translate(${translateX}px, ${translateY}px) scale(${currentZoom})`;
+            // On mobile, apply both zoom and translation with hardware acceleration
+            canvas.style.transform = `translate3d(${translateX}px, ${translateY}px, 0) scale(${currentZoom})`;
             canvas.style.transformOrigin = 'center center';
         } else {
-            canvas.style.transform = `translate(${translateX}px, ${translateY}px) scale(${currentZoom})`;
+            canvas.style.transform = `translate3d(${translateX}px, ${translateY}px, 0) scale(${currentZoom})`;
         }
     }
 
