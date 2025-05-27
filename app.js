@@ -262,7 +262,7 @@ document.addEventListener('DOMContentLoaded', () => {
         return color;
     }
 
-    // Handle image upload
+    // Handle image upload with maximum quality
     function handleImageUpload(file) {
         if (file && file.type.startsWith('image/')) {
             const reader = new FileReader();
@@ -474,150 +474,106 @@ document.addEventListener('DOMContentLoaded', () => {
         alert('Preset saved successfully!');
     });
 
-    // Optimize download functionality for highest quality
+    // Simple direct download functionality with maximum quality
     downloadBtn.addEventListener('click', () => {
-        // Prevent multiple clicks
-        if (downloadBtn.disabled) return;
+        if (!originalImage) return;
         
-        // Show loading state
-        downloadBtn.disabled = true;
-        const originalText = downloadBtn.textContent;
-        downloadBtn.textContent = 'Processing...';
+        try {
+            // Create temporary canvas with original dimensions
+            const tempCanvas = document.createElement('canvas');
+            const tempCtx = tempCanvas.getContext('2d', {
+                alpha: true,
+                willReadFrequently: true,
+                desynchronized: true // Enable hardware acceleration
+            });
+            
+            // Set dimensions to match original image exactly
+            tempCanvas.width = originalImage.width;
+            tempCanvas.height = originalImage.height;
+            
+            // Enable high-quality rendering
+            tempCtx.imageSmoothingEnabled = true;
+            tempCtx.imageSmoothingQuality = 'high';
+            
+            // Draw original image at full quality
+            tempCtx.drawImage(originalImage, 0, 0, originalImage.width, originalImage.height);
+            
+            // Apply watermark with original dimensions
+            const fontSize = parseInt(fontSizeInput.value);
+            const opacity = parseInt(opacityInput.value) / 100;
+            const rotation = parseInt(rotationInput.value);
+            const spacing = parseFloat(spacingInput.value);
+            const text = watermarkText.value;
+            const color = colorInput.value;
 
-        // Use requestAnimationFrame to prevent UI freezing
-        requestAnimationFrame(() => {
-            try {
-                // Create a temporary canvas to maintain original dimensions
-                const tempCanvas = document.createElement('canvas');
-                const tempCtx = tempCanvas.getContext('2d', { alpha: true, willReadFrequently: true });
-                
-                // Set dimensions to match original image exactly
-                tempCanvas.width = originalImage.width;
-                tempCanvas.height = originalImage.height;
-                
-                // Enable high-quality rendering
-                tempCtx.imageSmoothingEnabled = true;
-                tempCtx.imageSmoothingQuality = 'high';
-                
-                // Draw original image at full quality
-                tempCtx.drawImage(originalImage, 0, 0, originalImage.width, originalImage.height);
-                
-                // Apply watermark with original dimensions
-                const fontSize = parseInt(fontSizeInput.value);
-                const opacity = parseInt(opacityInput.value) / 100;
-                const rotation = parseInt(rotationInput.value);
-                const spacing = parseFloat(spacingInput.value);
-                const text = watermarkText.value;
-                const color = colorInput.value;
-
-                tempCtx.save();
-                tempCtx.globalAlpha = opacity;
-                tempCtx.font = `${fontSize}px ${fontFamilySelect.value}`;
-                
-                if (enableGradient.checked) {
-                    const gradient = tempCtx.createLinearGradient(0, 0, tempCanvas.width, tempCanvas.height);
-                    gradient.addColorStop(0, color);
-                    gradient.addColorStop(1, invertColor(color));
-                    tempCtx.fillStyle = gradient;
-                } else {
-                    tempCtx.fillStyle = color;
-                }
-
-                if (enableShadow.checked) {
-                    tempCtx.shadowColor = 'rgba(0, 0, 0, 0.5)';
-                    tempCtx.shadowBlur = 5;
-                    tempCtx.shadowOffsetX = 2;
-                    tempCtx.shadowOffsetY = 2;
-                }
-
-                tempCtx.textAlign = 'center';
-                tempCtx.textBaseline = 'middle';
-
-                const spacingPx = fontSize * spacing;
-                const diagonal = Math.sqrt(tempCanvas.width * tempCanvas.width + tempCanvas.height * tempCanvas.height);
-                const numWatermarks = Math.ceil(diagonal / spacingPx) * 2;
-
-                // Draw watermark pattern
-                switch (currentPattern) {
-                    case 'diagonal':
-                        drawDiagonalPattern(numWatermarks, spacingPx, rotation, text, tempCtx, tempCanvas);
-                        break;
-                    case 'grid':
-                        drawGridPattern(numWatermarks, spacingPx, rotation, text, tempCtx, tempCanvas);
-                        break;
-                    case 'random':
-                        drawRandomPattern(numWatermarks, spacingPx, rotation, text, tempCtx, tempCanvas);
-                        break;
-                    case 'wave':
-                        drawWavePattern(numWatermarks, spacingPx, rotation, text, tempCtx, tempCanvas);
-                        break;
-                    case 'spiral':
-                        drawSpiralPattern(numWatermarks, spacingPx, rotation, text, tempCtx, tempCanvas);
-                        break;
-                }
-
-                tempCtx.restore();
-
-                // Create download link with highest quality PNG
-                const link = document.createElement('a');
-                link.download = 'watermarked-image.png';
-                
-                // Use maximum quality PNG encoding
-                const pngData = tempCanvas.toDataURL('image/png', 1.0);
-                
-                // Create a blob for better quality
-                fetch(pngData)
-                    .then(res => res.blob())
-                    .then(blob => {
-                        const url = URL.createObjectURL(blob);
-                        link.href = url;
-                        
-                        // Handle mobile download
-                        if (isMobile()) {
-                            // Create a temporary link and trigger download
-                            const tempLink = document.createElement('a');
-                            tempLink.href = url;
-                            tempLink.download = 'watermarked-image.png';
-                            document.body.appendChild(tempLink);
-                            tempLink.click();
-                            document.body.removeChild(tempLink);
-                            
-                            // Clean up
-                            setTimeout(() => {
-                                URL.revokeObjectURL(url);
-                                downloadBtn.disabled = false;
-                                downloadBtn.textContent = originalText;
-                            }, 100);
-                        } else {
-                            // Desktop download
-                            link.click();
-                            // Clean up
-                            URL.revokeObjectURL(url);
-                            downloadBtn.disabled = false;
-                            downloadBtn.textContent = originalText;
-                        }
-                    })
-                    .catch(error => {
-                        console.error('Download error:', error);
-                        downloadBtn.disabled = false;
-                        downloadBtn.textContent = originalText;
-                        
-                        // Fallback for mobile
-                        if (isMobile()) {
-                            const fallbackLink = document.createElement('a');
-                            fallbackLink.href = pngData;
-                            fallbackLink.download = 'watermarked-image.png';
-                            document.body.appendChild(fallbackLink);
-                            fallbackLink.click();
-                            document.body.removeChild(fallbackLink);
-                        }
-                    });
-            } catch (error) {
-                console.error('Processing error:', error);
-                downloadBtn.disabled = false;
-                downloadBtn.textContent = originalText;
+            tempCtx.save();
+            tempCtx.globalAlpha = opacity;
+            tempCtx.font = `${fontSize}px ${fontFamilySelect.value}`;
+            
+            if (enableGradient.checked) {
+                const gradient = tempCtx.createLinearGradient(0, 0, tempCanvas.width, tempCanvas.height);
+                gradient.addColorStop(0, color);
+                gradient.addColorStop(1, invertColor(color));
+                tempCtx.fillStyle = gradient;
+            } else {
+                tempCtx.fillStyle = color;
             }
-        });
+            
+            if (enableShadow.checked) {
+                tempCtx.shadowColor = 'rgba(0, 0, 0, 0.5)';
+                tempCtx.shadowBlur = 5;
+                tempCtx.shadowOffsetX = 2;
+                tempCtx.shadowOffsetY = 2;
+            }
+
+            tempCtx.textAlign = 'center';
+            tempCtx.textBaseline = 'middle';
+
+            const spacingPx = fontSize * spacing;
+            const diagonal = Math.sqrt(tempCanvas.width * tempCanvas.width + tempCanvas.height * tempCanvas.height);
+            const numWatermarks = Math.ceil(diagonal / spacingPx) * 2;
+
+            // Draw watermark pattern
+            switch (currentPattern) {
+                case 'diagonal':
+                    drawDiagonalPattern(numWatermarks, spacingPx, rotation, text, tempCtx, tempCanvas);
+                    break;
+                case 'grid':
+                    drawGridPattern(numWatermarks, spacingPx, rotation, text, tempCtx, tempCanvas);
+                    break;
+                case 'random':
+                    drawRandomPattern(numWatermarks, spacingPx, rotation, text, tempCtx, tempCanvas);
+                    break;
+                case 'wave':
+                    drawWavePattern(numWatermarks, spacingPx, rotation, text, tempCtx, tempCanvas);
+                    break;
+                case 'spiral':
+                    drawSpiralPattern(numWatermarks, spacingPx, rotation, text, tempCtx, tempCanvas);
+                    break;
+            }
+
+            tempCtx.restore();
+
+            // Direct download with maximum quality
+            const link = document.createElement('a');
+            link.download = 'watermarked-image.png';
+            
+            // Use maximum quality PNG encoding
+            const pngData = tempCanvas.toDataURL('image/png', 1.0);
+            
+            // Create a blob for better quality
+            fetch(pngData)
+                .then(res => res.blob())
+                .then(blob => {
+                    const url = URL.createObjectURL(blob);
+                    link.href = url;
+                    link.click();
+                    // Clean up
+                    URL.revokeObjectURL(url);
+                });
+        } catch (error) {
+            console.error('Download error:', error);
+        }
     });
 
     // Zoom functionality

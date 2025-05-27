@@ -308,6 +308,12 @@
         padding: 0.5rem !important;
         margin: 0 !important;
     }
+
+    /* Remove loading indicator and error message styles */
+    .loading-indicator,
+    .error-message {
+        display: none !important;
+    }
 }
 
 /* Desktop styles */
