@@ -55,13 +55,37 @@ document.addEventListener('DOMContentLoaded', () => {
     signature.setAttribute('data-signature', signatureText);
     signature.textContent = `${String.fromCharCode(...builtWithHex.match(/.{1,2}/g).map(byte => parseInt(byte, 16)))}${String.fromCharCode(parseInt(heartHex, 16))} ${String.fromCharCode(...signatureHex.match(/.{1,2}/g).map(byte => parseInt(byte, 16)))}`;
 
-    // Optimize slider performance with requestAnimationFrame
-    let sliderTimeout;
+    // Optimize slider performance with requestAnimationFrame and throttling
+    let sliderRAF = null;
+    let lastSliderUpdate = 0;
+    const SLIDER_THROTTLE = 16; // ~60fps
+
     function debounceSlider(callback) {
-        if (sliderTimeout) {
-            cancelAnimationFrame(sliderTimeout);
+        if (sliderRAF) {
+            cancelAnimationFrame(sliderRAF);
         }
-        sliderTimeout = requestAnimationFrame(callback);
+        
+        const now = performance.now();
+        if (now - lastSliderUpdate >= SLIDER_THROTTLE) {
+            lastSliderUpdate = now;
+            sliderRAF = requestAnimationFrame(callback);
+        } else {
+            sliderRAF = requestAnimationFrame(() => {
+                lastSliderUpdate = performance.now();
+                callback();
+            });
+        }
+    }
+
+    // Optimize watermark drawing with offscreen canvas
+    let offscreenCanvas = null;
+    let offscreenCtx = null;
+
+    function initializeOffscreenCanvas() {
+        if (!offscreenCanvas) {
+            offscreenCanvas = new OffscreenCanvas(1, 1);
+            offscreenCtx = offscreenCanvas.getContext('2d');
+        }
     }
 
     // Default settings
@@ -108,18 +132,23 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Use requestAnimationFrame for smooth rendering
         requestAnimationFrame(() => {
+            // Initialize offscreen canvas if needed
+            initializeOffscreenCanvas();
+
             // Set canvas size to match image
             canvas.width = originalImage.width;
             canvas.height = originalImage.height;
+            offscreenCanvas.width = originalImage.width;
+            offscreenCanvas.height = originalImage.height;
 
             // Clear canvas and draw original image
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            offscreenCtx.clearRect(0, 0, offscreenCanvas.width, offscreenCanvas.height);
             
             if (enableBlur.checked) {
-                ctx.filter = 'blur(5px)';
+                offscreenCtx.filter = 'blur(5px)';
             }
-            ctx.drawImage(originalImage, 0, 0);
-            ctx.filter = 'none';
+            offscreenCtx.drawImage(originalImage, 0, 0);
+            offscreenCtx.filter = 'none';
 
             // Set watermark properties
             const fontSize = parseInt(fontSizeInput.value);
@@ -129,53 +158,58 @@ document.addEventListener('DOMContentLoaded', () => {
             const text = watermarkText.value;
             const color = colorInput.value;
 
-            ctx.save();
-            ctx.globalAlpha = opacity;
-            ctx.font = `${fontSize}px ${fontFamilySelect.value}`;
+            offscreenCtx.save();
+            offscreenCtx.globalAlpha = opacity;
+            offscreenCtx.font = `${fontSize}px ${fontFamilySelect.value}`;
             
             if (enableGradient.checked) {
-                const gradient = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
+                const gradient = offscreenCtx.createLinearGradient(0, 0, offscreenCanvas.width, offscreenCanvas.height);
                 gradient.addColorStop(0, color);
                 gradient.addColorStop(1, invertColor(color));
-                ctx.fillStyle = gradient;
+                offscreenCtx.fillStyle = gradient;
             } else {
-                ctx.fillStyle = color;
+                offscreenCtx.fillStyle = color;
             }
 
             if (enableShadow.checked) {
-                ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
-                ctx.shadowBlur = 5;
-                ctx.shadowOffsetX = 2;
-                ctx.shadowOffsetY = 2;
+                offscreenCtx.shadowColor = 'rgba(0, 0, 0, 0.5)';
+                offscreenCtx.shadowBlur = 5;
+                offscreenCtx.shadowOffsetX = 2;
+                offscreenCtx.shadowOffsetY = 2;
             }
 
-            ctx.textAlign = 'center';
-            ctx.textBaseline = 'middle';
+            offscreenCtx.textAlign = 'center';
+            offscreenCtx.textBaseline = 'middle';
 
             const spacingPx = fontSize * spacing;
-            const diagonal = Math.sqrt(canvas.width * canvas.width + canvas.height * canvas.height);
+            const diagonal = Math.sqrt(offscreenCanvas.width * offscreenCanvas.width + offscreenCanvas.height * offscreenCanvas.height);
             const numWatermarks = Math.ceil(diagonal / spacingPx) * 2;
 
-            // Use a single switch statement for better performance
+            // Draw watermark pattern
             switch (currentPattern) {
                 case 'diagonal':
-                    drawDiagonalPattern(numWatermarks, spacingPx, rotation, text, ctx, canvas);
+                    drawDiagonalPattern(numWatermarks, spacingPx, rotation, text, offscreenCtx, offscreenCanvas);
                     break;
                 case 'grid':
-                    drawGridPattern(numWatermarks, spacingPx, rotation, text, ctx, canvas);
+                    drawGridPattern(numWatermarks, spacingPx, rotation, text, offscreenCtx, offscreenCanvas);
                     break;
                 case 'random':
-                    drawRandomPattern(numWatermarks, spacingPx, rotation, text, ctx, canvas);
+                    drawRandomPattern(numWatermarks, spacingPx, rotation, text, offscreenCtx, offscreenCanvas);
                     break;
                 case 'wave':
-                    drawWavePattern(numWatermarks, spacingPx, rotation, text, ctx, canvas);
+                    drawWavePattern(numWatermarks, spacingPx, rotation, text, offscreenCtx, offscreenCanvas);
                     break;
                 case 'spiral':
-                    drawSpiralPattern(numWatermarks, spacingPx, rotation, text, ctx, canvas);
+                    drawSpiralPattern(numWatermarks, spacingPx, rotation, text, offscreenCtx, offscreenCanvas);
                     break;
             }
 
-            ctx.restore();
+            offscreenCtx.restore();
+
+            // Copy from offscreen canvas to main canvas
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.drawImage(offscreenCanvas, 0, 0);
+            
             downloadBtn.disabled = false;
         });
     }
@@ -495,82 +529,64 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // Mobile touch handling
-    function isMobile() {
-        return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    // Mobile touch handling with pinch zoom
+    let initialDistance = 0;
+    let initialZoom = 1;
+
+    function getDistance(touch1, touch2) {
+        const dx = touch1.clientX - touch2.clientX;
+        const dy = touch1.clientY - touch2.clientY;
+        return Math.sqrt(dx * dx + dy * dy);
+    }
+
+    function handleTouchStart(e) {
+        if (e.touches.length === 2) {
+            // Pinch zoom start
+            initialDistance = getDistance(e.touches[0], e.touches[1]);
+            initialZoom = currentZoom;
+            e.preventDefault();
+        } else if (e.touches.length === 1) {
+            // Single touch drag
+            isDragging = true;
+            startX = e.touches[0].clientX - translateX;
+            startY = e.touches[0].clientY - translateY;
+        }
+    }
+
+    function handleTouchMove(e) {
+        if (e.touches.length === 2) {
+            // Pinch zoom
+            const currentDistance = getDistance(e.touches[0], e.touches[1]);
+            const scale = currentDistance / initialDistance;
+            currentZoom = Math.min(Math.max(initialZoom * scale, 0.5), 3);
+            updateCanvasTransform();
+            e.preventDefault();
+        } else if (isDragging && e.touches.length === 1) {
+            // Single touch drag
+            translateX = e.touches[0].clientX - startX;
+            translateY = e.touches[0].clientY - startY;
+            updateCanvasTransform();
+        }
+    }
+
+    function handleTouchEnd() {
+        isDragging = false;
+        initialDistance = 0;
     }
 
     // Update canvas transform with mobile support
     function updateCanvasTransform() {
         if (isMobile()) {
             canvas.style.transform = `translate(${translateX}px, ${translateY}px) scale(${currentZoom})`;
+            canvas.style.transformOrigin = 'center center';
         } else {
             canvas.style.transform = `translate(${translateX}px, ${translateY}px) scale(${currentZoom})`;
         }
     }
 
-    // Update touch event listeners
-    if (isMobile()) {
-        let initialDistance = 0;
-        let initialZoom = 1;
-
-        canvas.addEventListener('touchstart', (e) => {
-            if (e.touches.length === 1) {
-                isDragging = true;
-                startX = e.touches[0].clientX - translateX;
-                startY = e.touches[0].clientY - translateY;
-            } else if (e.touches.length === 2) {
-                isDragging = false;
-                initialDistance = Math.hypot(
-                    e.touches[0].clientX - e.touches[1].clientX,
-                    e.touches[0].clientY - e.touches[1].clientY
-                );
-                initialZoom = currentZoom;
-            }
-        }, { passive: true });
-
-        canvas.addEventListener('touchmove', (e) => {
-            if (e.touches.length === 1 && isDragging) {
-                e.preventDefault();
-                translateX = e.touches[0].clientX - startX;
-                translateY = e.touches[0].clientY - startY;
-                updateCanvasTransform();
-            } else if (e.touches.length === 2) {
-                e.preventDefault();
-                const currentDistance = Math.hypot(
-                    e.touches[0].clientX - e.touches[1].clientX,
-                    e.touches[0].clientY - e.touches[1].clientY
-                );
-                const scale = currentDistance / initialDistance;
-                currentZoom = Math.min(Math.max(initialZoom * scale, 0.5), 3);
-                updateCanvasTransform();
-            }
-        }, { passive: false });
-
-        canvas.addEventListener('touchend', () => {
-            isDragging = false;
-        });
-
-        // Update zoom controls for mobile
-        zoomInBtn.addEventListener('touchstart', (e) => {
-            e.preventDefault();
-            currentZoom = Math.min(currentZoom + 0.1, 3);
-            updateCanvasTransform();
-        }, { passive: false });
-
-        zoomOutBtn.addEventListener('touchstart', (e) => {
-            e.preventDefault();
-            currentZoom = Math.max(currentZoom - 0.1, 0.5);
-            updateCanvasTransform();
-        }, { passive: false });
-
-        resetZoomBtn.addEventListener('touchstart', (e) => {
-            e.preventDefault();
-            currentZoom = 1;
-            translateX = 0;
-            translateY = 0;
-            updateCanvasTransform();
-        }, { passive: false });
+    // Mobile touch handling
+    function isMobile() {
+        return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
     }
 
     // Initialize

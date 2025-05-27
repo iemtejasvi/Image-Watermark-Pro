@@ -8,6 +8,8 @@
         height: auto !important;
         overflow-y: auto !important;
         -webkit-overflow-scrolling: touch !important;
+        will-change: transform !important;
+        transform: translateZ(0) !important;
     }
 
     /* Fix preview container and scrolling */
@@ -18,6 +20,11 @@
         padding: 0 !important;
         position: relative !important;
         z-index: 1 !important;
+        display: flex !important;
+        justify-content: center !important;
+        align-items: center !important;
+        will-change: transform !important;
+        transform: translateZ(0) !important;
     }
 
     .preview-container {
@@ -25,24 +32,40 @@
         height: auto !important;
         min-height: 200px !important;
         max-height: 50vh !important;
-        overflow: visible !important;
+        overflow: hidden !important;
         position: relative !important;
-        touch-action: pan-y !important;
+        touch-action: none !important;
         -webkit-overflow-scrolling: touch !important;
         margin: 0 !important;
         padding: 0 !important;
         z-index: 1 !important;
+        display: flex !important;
+        justify-content: center !important;
+        align-items: center !important;
+        aspect-ratio: 1/1 !important;
+        will-change: transform !important;
+        transform: translateZ(0) !important;
     }
 
     /* Fix canvas touch handling */
     canvas {
         width: 100% !important;
-        height: auto !important;
-        max-height: 50vh !important;
+        height: 100% !important;
+        max-width: 100% !important;
+        max-height: 100% !important;
         object-fit: contain !important;
-        touch-action: pan-y !important;
-        pointer-events: none !important;
+        touch-action: none !important;
+        pointer-events: auto !important;
         z-index: 1 !important;
+        position: absolute !important;
+        top: 50% !important;
+        left: 50% !important;
+        transform: translate(-50%, -50%) !important;
+        will-change: transform !important;
+        -webkit-backface-visibility: hidden !important;
+        backface-visibility: hidden !important;
+        perspective: 1000 !important;
+        -webkit-perspective: 1000 !important;
     }
 
     /* Hide controls by default */
@@ -90,16 +113,6 @@
         pointer-events: auto !important;
     }
 
-    /* Fix icon button sizes */
-    .icon-btn {
-        width: 32px !important;
-        height: 32px !important;
-        min-width: 32px !important;
-        min-height: 32px !important;
-        padding: 0.5rem !important;
-        font-size: 0.9rem !important;
-    }
-
     /* Fix slider appearance and alignment */
     input[type="range"] {
         -webkit-appearance: none !important;
@@ -111,6 +124,9 @@
         margin: 0.75rem 0 !important;
         padding: 0 !important;
         position: relative !important;
+        touch-action: pan-x !important;
+        will-change: transform !important;
+        transform: translateZ(0) !important;
     }
 
     input[type="range"]::-webkit-slider-thumb {
@@ -127,6 +143,8 @@
         position: relative !important;
         z-index: 2 !important;
         transform: translateY(0) !important;
+        touch-action: none !important;
+        will-change: transform !important;
     }
 
     input[type="range"]::-moz-range-thumb {
@@ -139,6 +157,8 @@
         box-shadow: 0 2px 8px var(--shadow-color) !important;
         position: relative !important;
         z-index: 2 !important;
+        touch-action: none !important;
+        will-change: transform !important;
     }
 
     input[type="range"]::-moz-range-track {
@@ -186,11 +206,17 @@
         margin-top: 1rem !important;
         position: relative !important;
         z-index: 1 !important;
+        touch-action: manipulation !important;
+        will-change: transform !important;
+        transform: translateZ(0) !important;
     }
 
     .control-group {
         width: 100% !important;
         gap: 0.5rem !important;
+        touch-action: manipulation !important;
+        will-change: transform !important;
+        transform: translateZ(0) !important;
     }
 
     /* Ensure proper spacing */
@@ -198,11 +224,17 @@
         flex-direction: column !important;
         gap: 0.75rem !important;
         width: 100% !important;
+        touch-action: manipulation !important;
+        will-change: transform !important;
+        transform: translateZ(0) !important;
     }
 
     .primary-btn, .secondary-btn {
         width: 100% !important;
         min-height: 44px !important;
+        touch-action: manipulation !important;
+        will-change: transform !important;
+        transform: translateZ(0) !important;
     }
 
     /* Ensure body and container allow scrolling */
@@ -212,6 +244,9 @@
         position: relative !important;
         height: auto !important;
         min-height: 100vh !important;
+        touch-action: manipulation !important;
+        will-change: transform !important;
+        transform: translateZ(0) !important;
     }
 
     .container {
@@ -219,5 +254,8 @@
         -webkit-overflow-scrolling: touch !important;
         height: auto !important;
         min-height: 100vh !important;
+        touch-action: manipulation !important;
+        will-change: transform !important;
+        transform: translateZ(0) !important;
     }
 } 
