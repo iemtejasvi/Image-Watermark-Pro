@@ -554,23 +554,40 @@ document.addEventListener('DOMContentLoaded', () => {
 
             tempCtx.restore();
 
-            // Direct download with maximum quality
-            const link = document.createElement('a');
-            link.download = 'watermarked-image.png';
-            
-            // Use maximum quality PNG encoding
-            const pngData = tempCanvas.toDataURL('image/png', 1.0);
-            
-            // Create a blob for better quality
-            fetch(pngData)
-                .then(res => res.blob())
-                .then(blob => {
-                    const url = URL.createObjectURL(blob);
-                    link.href = url;
-                    link.click();
-                    // Clean up
-                    URL.revokeObjectURL(url);
-                });
+            // Handle mobile download differently
+            if (isMobile()) {
+                // For mobile, use a simpler approach to prevent freezing
+                const pngData = tempCanvas.toDataURL('image/png', 1.0);
+                const link = document.createElement('a');
+                link.download = 'watermarked-image.png';
+                link.href = pngData;
+                
+                // Create a temporary link and trigger download
+                const tempLink = document.createElement('a');
+                tempLink.href = pngData;
+                tempLink.download = 'watermarked-image.png';
+                document.body.appendChild(tempLink);
+                tempLink.click();
+                document.body.removeChild(tempLink);
+            } else {
+                // Desktop download with maximum quality
+                const link = document.createElement('a');
+                link.download = 'watermarked-image.png';
+                
+                // Use maximum quality PNG encoding
+                const pngData = tempCanvas.toDataURL('image/png', 1.0);
+                
+                // Create a blob for better quality
+                fetch(pngData)
+                    .then(res => res.blob())
+                    .then(blob => {
+                        const url = URL.createObjectURL(blob);
+                        link.href = url;
+                        link.click();
+                        // Clean up
+                        URL.revokeObjectURL(url);
+                    });
+            }
         } catch (error) {
             console.error('Download error:', error);
         }
