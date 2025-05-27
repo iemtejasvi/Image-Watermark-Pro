@@ -88,7 +88,6 @@ document.addEventListener('DOMContentLoaded', () => {
         spacingInput.value = defaultSettings.spacing;
         spacingInput.min = 5;
         spacingInput.max = 10;
-        spacingInput.step = 0.1;
         colorInput.value = defaultSettings.color;
         fontFamilySelect.value = defaultSettings.fontFamily;
         enableShadow.checked = defaultSettings.shadow;
@@ -99,12 +98,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Update value displays with debouncing
     function updateValueDisplays() {
-        requestAnimationFrame(() => {
-            opacityValue.textContent = `${opacityInput.value}%`;
-            fontSizeValue.textContent = `${fontSizeInput.value}px`;
-            rotationValue.textContent = `${rotationInput.value}°`;
-            spacingValue.textContent = `${spacingInput.value}x`;
-        });
+        opacityValue.textContent = `${opacityInput.value}%`;
+        fontSizeValue.textContent = `${fontSizeInput.value}px`;
+        rotationValue.textContent = `${rotationInput.value}°`;
+        spacingValue.textContent = `${spacingInput.value}x`;
     }
 
     // Optimize watermark drawing
@@ -262,7 +259,7 @@ document.addEventListener('DOMContentLoaded', () => {
         return color;
     }
 
-    // Handle image upload with maximum quality
+    // Handle image upload
     function handleImageUpload(file) {
         if (file && file.type.startsWith('image/')) {
             const reader = new FileReader();
@@ -280,16 +277,15 @@ document.addEventListener('DOMContentLoaded', () => {
                     let canvasWidth, canvasHeight;
                     
                     if (isMobile()) {
-                        // Mobile: use device pixel ratio for better quality
-                        const dpr = window.devicePixelRatio || 1;
+                        // Mobile: fit to container while maintaining aspect ratio
                         if (imageAspectRatio > 1) {
                             // Landscape image
-                            canvasWidth = containerWidth * dpr;
-                            canvasHeight = (containerWidth / imageAspectRatio) * dpr;
+                            canvasWidth = containerWidth;
+                            canvasHeight = containerWidth / imageAspectRatio;
                         } else {
                             // Portrait image
-                            canvasHeight = containerHeight * dpr;
-                            canvasWidth = containerHeight * imageAspectRatio * dpr;
+                            canvasHeight = containerHeight;
+                            canvasWidth = containerHeight * imageAspectRatio;
                         }
                     } else {
                         // Desktop: use original image dimensions with max constraints
@@ -305,27 +301,13 @@ document.addEventListener('DOMContentLoaded', () => {
                         }
                     }
                     
-                    // Set canvas dimensions
-                    canvas.width = canvasWidth;
-                    canvas.height = canvasHeight;
+                    // Set canvas dimensions to match original image quality
+                    canvas.width = originalImage.width;
+                    canvas.height = originalImage.height;
                     
                     // Enable high-quality image rendering
                     ctx.imageSmoothingEnabled = true;
                     ctx.imageSmoothingQuality = 'high';
-                    
-                    // Draw image maintaining aspect ratio
-                    const scale = Math.min(
-                        canvasWidth / originalImage.width,
-                        canvasHeight / originalImage.height
-                    );
-                    
-                    const scaledWidth = originalImage.width * scale;
-                    const scaledHeight = originalImage.height * scale;
-                    
-                    const x = (canvasWidth - scaledWidth) / 2;
-                    const y = (canvasHeight - scaledHeight) / 2;
-                    
-                    ctx.drawImage(originalImage, x, y, scaledWidth, scaledHeight);
                     
                     // Update image info
                     imageDimensions.textContent = `${originalImage.width} × ${originalImage.height}`;
@@ -393,21 +375,10 @@ document.addEventListener('DOMContentLoaded', () => {
     // Optimize control changes with debouncing
     [watermarkText, opacityInput, fontSizeInput, rotationInput, spacingInput, colorInput, fontFamilySelect].forEach(control => {
         control.addEventListener('input', () => {
-            if (isMobile()) {
-                // On mobile, use a more aggressive debounce
-                if (sliderTimeout) {
-                    cancelAnimationFrame(sliderTimeout);
-                }
-                sliderTimeout = requestAnimationFrame(() => {
-                    updateValueDisplays();
-                    drawWatermark();
-                });
-            } else {
-                debounceSlider(() => {
-                    updateValueDisplays();
-                    drawWatermark();
-                });
-            }
+            debounceSlider(() => {
+                updateValueDisplays();
+                drawWatermark();
+            });
         });
     });
 
@@ -474,167 +445,99 @@ document.addEventListener('DOMContentLoaded', () => {
         alert('Preset saved successfully!');
     });
 
-    // Simple direct download functionality with maximum quality
+    // Optimize download functionality for highest quality
     downloadBtn.addEventListener('click', () => {
-        if (!originalImage) return;
+        // Create a temporary canvas to maintain original dimensions
+        const tempCanvas = document.createElement('canvas');
+        const tempCtx = tempCanvas.getContext('2d', { 
+            alpha: true,
+            willReadFrequently: false,
+            desynchronized: true
+        });
         
-        // Prevent multiple clicks
-        if (downloadBtn.disabled) return;
-        downloadBtn.disabled = true;
+        // Set dimensions to match original image exactly
+        tempCanvas.width = originalImage.width;
+        tempCanvas.height = originalImage.height;
         
-        try {
-            // Create temporary canvas with original dimensions
-            const tempCanvas = document.createElement('canvas');
-            const tempCtx = tempCanvas.getContext('2d', {
-                alpha: true,
-                willReadFrequently: true,
-                desynchronized: true
-            });
-            
-            // Set dimensions to match original image exactly
-            tempCanvas.width = originalImage.width;
-            tempCanvas.height = originalImage.height;
-            
-            // Enable high-quality rendering
-            tempCtx.imageSmoothingEnabled = true;
-            tempCtx.imageSmoothingQuality = 'high';
-            
-            // Draw original image at full quality
-            tempCtx.drawImage(originalImage, 0, 0, originalImage.width, originalImage.height);
-            
-            // Apply watermark with original dimensions
-            const fontSize = parseInt(fontSizeInput.value);
-            const opacity = parseInt(opacityInput.value) / 100;
-            const rotation = parseInt(rotationInput.value);
-            const spacing = parseFloat(spacingInput.value);
-            const text = watermarkText.value;
-            const color = colorInput.value;
+        // Enable high-quality rendering
+        tempCtx.imageSmoothingEnabled = true;
+        tempCtx.imageSmoothingQuality = 'high';
+        
+        // Draw original image at full quality
+        tempCtx.drawImage(originalImage, 0, 0, originalImage.width, originalImage.height);
+        
+        // Apply watermark with original dimensions
+        const fontSize = parseInt(fontSizeInput.value);
+        const opacity = parseInt(opacityInput.value) / 100;
+        const rotation = parseInt(rotationInput.value);
+        const spacing = parseFloat(spacingInput.value);
+        const text = watermarkText.value;
+        const color = colorInput.value;
 
-            tempCtx.save();
-            tempCtx.globalAlpha = opacity;
-            tempCtx.font = `${fontSize}px ${fontFamilySelect.value}`;
-            
-            if (enableGradient.checked) {
-                const gradient = tempCtx.createLinearGradient(0, 0, tempCanvas.width, tempCanvas.height);
-                gradient.addColorStop(0, color);
-                gradient.addColorStop(1, invertColor(color));
-                tempCtx.fillStyle = gradient;
-            } else {
-                tempCtx.fillStyle = color;
-            }
-            
-            if (enableShadow.checked) {
-                tempCtx.shadowColor = 'rgba(0, 0, 0, 0.5)';
-                tempCtx.shadowBlur = 5;
-                tempCtx.shadowOffsetX = 2;
-                tempCtx.shadowOffsetY = 2;
-            }
-
-            tempCtx.textAlign = 'center';
-            tempCtx.textBaseline = 'middle';
-
-            const spacingPx = fontSize * spacing;
-            const diagonal = Math.sqrt(tempCanvas.width * tempCanvas.width + tempCanvas.height * tempCanvas.height);
-            const numWatermarks = Math.ceil(diagonal / spacingPx) * 2;
-
-            // Draw watermark pattern
-            switch (currentPattern) {
-                case 'diagonal':
-                    drawDiagonalPattern(numWatermarks, spacingPx, rotation, text, tempCtx, tempCanvas);
-                    break;
-                case 'grid':
-                    drawGridPattern(numWatermarks, spacingPx, rotation, text, tempCtx, tempCanvas);
-                    break;
-                case 'random':
-                    drawRandomPattern(numWatermarks, spacingPx, rotation, text, tempCtx, tempCanvas);
-                    break;
-                case 'wave':
-                    drawWavePattern(numWatermarks, spacingPx, rotation, text, tempCtx, tempCanvas);
-                    break;
-                case 'spiral':
-                    drawSpiralPattern(numWatermarks, spacingPx, rotation, text, tempCtx, tempCanvas);
-                    break;
-            }
-
-            tempCtx.restore();
-
-            // Handle mobile download differently
-            if (isMobile()) {
-                // For mobile, use a more direct approach
-                const downloadImage = () => {
-                    const a = document.createElement('a');
-                    a.style.display = 'none';
-                    a.download = 'watermarked-image.png';
-                    
-                    // Create a new blob for each download
-                    tempCanvas.toBlob((blob) => {
-                        if (blob) {
-                            const url = URL.createObjectURL(blob);
-                            a.href = url;
-                            document.body.appendChild(a);
-                            a.click();
-                            
-                            // Clean up after download starts
-                            setTimeout(() => {
-                                document.body.removeChild(a);
-                                URL.revokeObjectURL(url);
-                                downloadBtn.disabled = false;
-                            }, 100);
-                        } else {
-                            // Fallback if blob creation fails
-                            const pngData = tempCanvas.toDataURL('image/png', 1.0);
-                            a.href = pngData;
-                            document.body.appendChild(a);
-                            a.click();
-                            
-                            // Clean up after download starts
-                            setTimeout(() => {
-                                document.body.removeChild(a);
-                                downloadBtn.disabled = false;
-                            }, 100);
-                        }
-                    }, 'image/png', 1.0);
-                };
-                
-                // Start download
-                downloadImage();
-                
-                // Clean up canvas after download starts
-                setTimeout(() => {
-                    tempCanvas.width = 1;
-                    tempCanvas.height = 1;
-                    tempCtx.clearRect(0, 0, 1, 1);
-                }, 100);
-            } else {
-                // Desktop download with maximum quality
-                const link = document.createElement('a');
-                link.download = 'watermarked-image.png';
-                
-                // Use maximum quality PNG encoding
-                const pngData = tempCanvas.toDataURL('image/png', 1.0);
-                
-                // Create a blob for better quality
-                fetch(pngData)
-                    .then(res => res.blob())
-                    .then(blob => {
-                        const url = URL.createObjectURL(blob);
-                        link.href = url;
-                        link.click();
-                        // Clean up
-                        URL.revokeObjectURL(url);
-                        downloadBtn.disabled = false;
-                    })
-                    .catch(() => {
-                        // Fallback to direct download if blob creation fails
-                        link.href = pngData;
-                        link.click();
-                        downloadBtn.disabled = false;
-                    });
-            }
-        } catch (error) {
-            console.error('Download error:', error);
-            downloadBtn.disabled = false;
+        tempCtx.save();
+        tempCtx.globalAlpha = opacity;
+        tempCtx.font = `${fontSize}px ${fontFamilySelect.value}`;
+        
+        if (enableGradient.checked) {
+            const gradient = tempCtx.createLinearGradient(0, 0, tempCanvas.width, tempCanvas.height);
+            gradient.addColorStop(0, color);
+            gradient.addColorStop(1, invertColor(color));
+            tempCtx.fillStyle = gradient;
+        } else {
+            tempCtx.fillStyle = color;
         }
+
+        if (enableShadow.checked) {
+            tempCtx.shadowColor = 'rgba(0, 0, 0, 0.5)';
+            tempCtx.shadowBlur = 5;
+            tempCtx.shadowOffsetX = 2;
+            tempCtx.shadowOffsetY = 2;
+        }
+
+        tempCtx.textAlign = 'center';
+        tempCtx.textBaseline = 'middle';
+
+        const spacingPx = fontSize * spacing;
+        const diagonal = Math.sqrt(tempCanvas.width * tempCanvas.width + tempCanvas.height * tempCanvas.height);
+        const numWatermarks = Math.ceil(diagonal / spacingPx) * 2;
+
+        // Draw watermark pattern
+        switch (currentPattern) {
+            case 'diagonal':
+                drawDiagonalPattern(numWatermarks, spacingPx, rotation, text, tempCtx, tempCanvas);
+                break;
+            case 'grid':
+                drawGridPattern(numWatermarks, spacingPx, rotation, text, tempCtx, tempCanvas);
+                break;
+            case 'random':
+                drawRandomPattern(numWatermarks, spacingPx, rotation, text, tempCtx, tempCanvas);
+                break;
+            case 'wave':
+                drawWavePattern(numWatermarks, spacingPx, rotation, text, tempCtx, tempCanvas);
+                break;
+            case 'spiral':
+                drawSpiralPattern(numWatermarks, spacingPx, rotation, text, tempCtx, tempCanvas);
+                break;
+        }
+
+        tempCtx.restore();
+
+        // Create download link with highest quality PNG
+        const link = document.createElement('a');
+        link.download = 'watermarked-image.png';
+        
+        // Use maximum quality settings for PNG export
+        const quality = 1.0;
+        const mimeType = 'image/png';
+        
+        // Convert to blob for better quality
+        tempCanvas.toBlob((blob) => {
+            const url = URL.createObjectURL(blob);
+            link.href = url;
+            link.click();
+            // Clean up
+            setTimeout(() => URL.revokeObjectURL(url), 100);
+        }, mimeType, quality);
     });
 
     // Zoom functionality
@@ -669,40 +572,46 @@ document.addEventListener('DOMContentLoaded', () => {
         return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
     }
 
+    // Update canvas transform with mobile support
+    function updateCanvasTransform() {
+        if (isMobile()) {
+            // On mobile, only apply zoom, not translation
+            canvas.style.transform = `scale(${currentZoom})`;
+        } else {
+            canvas.style.transform = `translate(${translateX}px, ${translateY}px) scale(${currentZoom})`;
+        }
+    }
+
     // Update touch event listeners
     if (isMobile()) {
         let initialDistance = 0;
         let initialZoom = 1;
-        let lastTouchEnd = 0;
-        let lastScale = 1;
-        let isPinching = false;
 
-        // Remove zoom buttons on mobile
-        zoomInBtn.style.display = 'none';
-        zoomOutBtn.style.display = 'none';
-        resetZoomBtn.style.display = 'none';
+        // Remove mouse event listeners on mobile
+        canvas.removeEventListener('mousedown', handleMouseDown);
+        canvas.removeEventListener('mousemove', handleMouseMove);
+        canvas.removeEventListener('mouseup', handleMouseUp);
+        canvas.removeEventListener('mouseleave', handleMouseUp);
 
         // Add touch event listeners
         canvas.addEventListener('touchstart', (e) => {
             if (e.touches.length === 2) {
                 // Pinch start
-                e.preventDefault();
-                isPinching = true;
                 initialDistance = Math.hypot(
                     e.touches[0].clientX - e.touches[1].clientX,
                     e.touches[0].clientY - e.touches[1].clientY
                 );
                 initialZoom = currentZoom;
-            } else if (e.touches.length === 1 && !isPinching) {
+            } else if (e.touches.length === 1) {
                 // Single touch start
                 isDragging = true;
                 startX = e.touches[0].clientX - translateX;
                 startY = e.touches[0].clientY - translateY;
             }
-        }, { passive: false });
+        }, { passive: true });
 
         canvas.addEventListener('touchmove', (e) => {
-            if (e.touches.length === 2 && isPinching) {
+            if (e.touches.length === 2) {
                 // Pinch move
                 e.preventDefault();
                 const currentDistance = Math.hypot(
@@ -710,64 +619,25 @@ document.addEventListener('DOMContentLoaded', () => {
                     e.touches[0].clientY - e.touches[1].clientY
                 );
                 const scale = currentDistance / initialDistance;
-                const newScale = initialZoom * scale;
-                
-                // Limit zoom range
-                currentZoom = Math.min(Math.max(newScale, 0.5), 3);
-                
-                // Update transform with hardware acceleration
-                requestAnimationFrame(() => {
-                    updateCanvasTransform();
-                });
-            } else if (e.touches.length === 1 && isDragging && !isPinching) {
+                currentZoom = Math.min(Math.max(initialZoom * scale, 0.5), 3);
+                updateCanvasTransform();
+            } else if (e.touches.length === 1 && isDragging) {
                 // Single touch move
                 e.preventDefault();
                 translateX = e.touches[0].clientX - startX;
                 translateY = e.touches[0].clientY - startY;
-                
-                // Update transform with hardware acceleration
-                requestAnimationFrame(() => {
-                    updateCanvasTransform();
-                });
+                updateCanvasTransform();
             }
         }, { passive: false });
 
-        canvas.addEventListener('touchend', (e) => {
-            if (e.touches.length < 2) {
-                isPinching = false;
-            }
-            if (e.touches.length === 0) {
-                isDragging = false;
-                
-                // Handle double tap for zoom reset
-                const now = Date.now();
-                if (now - lastTouchEnd < 300) {
-                    currentZoom = 1;
-                    translateX = 0;
-                    translateY = 0;
-                    requestAnimationFrame(() => {
-                        updateCanvasTransform();
-                    });
-                }
-                lastTouchEnd = now;
-            }
-        }, { passive: true });
-
-        canvas.addEventListener('touchcancel', () => {
+        canvas.addEventListener('touchend', () => {
             isDragging = false;
-            isPinching = false;
         }, { passive: true });
-    }
 
-    // Update canvas transform with mobile support
-    function updateCanvasTransform() {
-        if (isMobile()) {
-            // On mobile, apply both zoom and translation with hardware acceleration
-            canvas.style.transform = `translate3d(${translateX}px, ${translateY}px, 0) scale(${currentZoom})`;
-            canvas.style.transformOrigin = 'center center';
-        } else {
-            canvas.style.transform = `translate3d(${translateX}px, ${translateY}px, 0) scale(${currentZoom})`;
-        }
+        // Remove zoom button event listeners on mobile
+        zoomInBtn.removeEventListener('click', () => {});
+        zoomOutBtn.removeEventListener('click', () => {});
+        resetZoomBtn.removeEventListener('click', () => {});
     }
 
     // Initialize
