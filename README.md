@@ -9,6 +9,8 @@ A professional, vintage-inspired image watermarking tool. Effortlessly add beaut
 - **Mobile-First**: Flawless on all devices (mobile, tablet, desktop, ultrawide)
 - **Buttery Smooth Sliders**: Optimized for even the lowest-end devices
 - **Custom Watermark Patterns**: Diagonal, grid, random, wave, spiral
+- **Dual Text Watermarks**: Different text for left and right halves of the image
+- **Settings Persistence**: Auto-save and load your preferred watermark settings
 - **Live Preview**: See your watermark instantly
 - **Advanced Options**: Shadow, blur, gradient, color, font, and more
 - **Presets**: Save and reuse your favorite watermark settings
@@ -44,6 +46,7 @@ MIT License
 - Modern web standards and best practices
 
 ## Version History
+- 3.1.0: Dual text watermarks, settings persistence, auto-save functionality
 - 3.0.0: Vintage UI, mobile-first, slider overhaul
 - 2.0.0: Advanced features
 - 1.0.0: Initial release

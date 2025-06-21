@@ -29,6 +29,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const enableGradient = document.getElementById('enableGradient');
     const signature = document.getElementById('signature');
 
+    // New DOM elements for dual text and settings
+    const enableDualText = document.getElementById('enableDualText');
+    const watermarkTextLeft = document.getElementById('watermarkTextLeft');
+    const watermarkTextRight = document.getElementById('watermarkTextRight');
+    const autoSaveSettings = document.getElementById('autoSaveSettings');
+    const loadSettingsBtn = document.getElementById('loadSettingsBtn');
+
     // Value display elements
     const opacityValue = document.getElementById('opacityValue');
     const fontSizeValue = document.getElementById('fontSizeValue');
@@ -67,6 +74,8 @@ document.addEventListener('DOMContentLoaded', () => {
     // Default settings
     const defaultSettings = {
         text: 'WATERMARK',
+        textLeft: 'TEXT1',
+        textRight: 'TEXT2',
         opacity: 40,
         fontSize: 24,
         rotation: 45,
@@ -76,23 +85,37 @@ document.addEventListener('DOMContentLoaded', () => {
         pattern: 'diagonal',
         shadow: false,
         blur: false,
-        gradient: false
+        gradient: false,
+        dualText: false,
+        autoSave: false
     };
 
     // Initialize settings
     function initializeSettings() {
-        watermarkText.value = defaultSettings.text;
-        opacityInput.value = defaultSettings.opacity;
-        fontSizeInput.value = defaultSettings.fontSize;
-        rotationInput.value = defaultSettings.rotation;
-        spacingInput.value = defaultSettings.spacing;
+        // Load saved settings from localStorage
+        const savedSettings = JSON.parse(localStorage.getItem('watermarkSettings') || '{}');
+        const settings = { ...defaultSettings, ...savedSettings };
+        
+        watermarkText.value = settings.text;
+        watermarkTextLeft.value = settings.textLeft;
+        watermarkTextRight.value = settings.textRight;
+        opacityInput.value = settings.opacity;
+        fontSizeInput.value = settings.fontSize;
+        rotationInput.value = settings.rotation;
+        spacingInput.value = settings.spacing;
         spacingInput.min = 5;
         spacingInput.max = 10;
-        colorInput.value = defaultSettings.color;
-        fontFamilySelect.value = defaultSettings.fontFamily;
-        enableShadow.checked = defaultSettings.shadow;
-        enableBlur.checked = defaultSettings.blur;
-        enableGradient.checked = defaultSettings.gradient;
+        colorInput.value = settings.color;
+        fontFamilySelect.value = settings.fontFamily;
+        enableShadow.checked = settings.shadow;
+        enableBlur.checked = settings.blur;
+        enableGradient.checked = settings.gradient;
+        enableDualText.checked = settings.dualText;
+        autoSaveSettings.checked = settings.autoSave;
+        
+        // Show/hide dual text controls based on setting
+        toggleDualTextControls(settings.dualText);
+        
         updateValueDisplays();
     }
 
@@ -104,6 +127,38 @@ document.addEventListener('DOMContentLoaded', () => {
             rotationValue.textContent = `${rotationInput.value}°`;
             spacingValue.textContent = `${spacingInput.value}x`;
         });
+    }
+
+    // Toggle dual text controls visibility
+    function toggleDualTextControls(show) {
+        const dualTextControls = document.querySelectorAll('.dual-text-controls');
+        dualTextControls.forEach(control => {
+            control.style.display = show ? 'block' : 'none';
+        });
+    }
+
+    // Save settings to localStorage
+    function saveSettings() {
+        if (autoSaveSettings.checked) {
+            const settings = {
+                text: watermarkText.value,
+                textLeft: watermarkTextLeft.value,
+                textRight: watermarkTextRight.value,
+                opacity: opacityInput.value,
+                fontSize: fontSizeInput.value,
+                rotation: rotationInput.value,
+                spacing: spacingInput.value,
+                color: colorInput.value,
+                fontFamily: fontFamilySelect.value,
+                pattern: currentPattern,
+                shadow: enableShadow.checked,
+                blur: enableBlur.checked,
+                gradient: enableGradient.checked,
+                dualText: enableDualText.checked,
+                autoSave: autoSaveSettings.checked
+            };
+            localStorage.setItem('watermarkSettings', JSON.stringify(settings));
+        }
     }
 
     // Optimize watermark drawing
@@ -132,6 +187,8 @@ document.addEventListener('DOMContentLoaded', () => {
             const rotation = parseInt(rotationInput.value);
             const spacing = parseFloat(spacingInput.value);
             const text = watermarkText.value;
+            const textLeft = watermarkTextLeft.value;
+            const textRight = watermarkTextRight.value;
             const color = colorInput.value;
 
             ctx.save();
@@ -164,19 +221,19 @@ document.addEventListener('DOMContentLoaded', () => {
             // Draw watermark pattern
             switch (currentPattern) {
                 case 'diagonal':
-                    drawDiagonalPattern(numWatermarks, spacingPx, rotation, text, ctx, canvas);
+                    drawDiagonalPattern(numWatermarks, spacingPx, rotation, text, ctx, canvas, textLeft, textRight);
                     break;
                 case 'grid':
-                    drawGridPattern(numWatermarks, spacingPx, rotation, text, ctx, canvas);
+                    drawGridPattern(numWatermarks, spacingPx, rotation, text, ctx, canvas, textLeft, textRight);
                     break;
                 case 'random':
-                    drawRandomPattern(numWatermarks, spacingPx, rotation, text, ctx, canvas);
+                    drawRandomPattern(numWatermarks, spacingPx, rotation, text, ctx, canvas, textLeft, textRight);
                     break;
                 case 'wave':
-                    drawWavePattern(numWatermarks, spacingPx, rotation, text, ctx, canvas);
+                    drawWavePattern(numWatermarks, spacingPx, rotation, text, ctx, canvas, textLeft, textRight);
                     break;
                 case 'spiral':
-                    drawSpiralPattern(numWatermarks, spacingPx, rotation, text, ctx, canvas);
+                    drawSpiralPattern(numWatermarks, spacingPx, rotation, text, ctx, canvas, textLeft, textRight);
                     break;
             }
 
@@ -186,45 +243,45 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // Pattern drawing functions
-    function drawDiagonalPattern(numWatermarks, spacing, rotation, text, ctx, canvas) {
+    function drawDiagonalPattern(numWatermarks, spacing, rotation, text, ctx, canvas, textLeft, textRight) {
         for (let i = -numWatermarks; i < numWatermarks; i++) {
             for (let j = -numWatermarks; j < numWatermarks; j++) {
                 const x = i * spacing;
                 const y = j * spacing;
-                drawWatermarkText(x, y, rotation, text, ctx);
+                drawWatermarkText(x, y, rotation, text, ctx, textLeft, textRight);
             }
         }
     }
 
-    function drawGridPattern(numWatermarks, spacing, rotation, text, ctx, canvas) {
+    function drawGridPattern(numWatermarks, spacing, rotation, text, ctx, canvas, textLeft, textRight) {
         for (let i = 0; i < numWatermarks; i++) {
             for (let j = 0; j < numWatermarks; j++) {
                 const x = i * spacing;
                 const y = j * spacing;
-                drawWatermarkText(x, y, rotation, text, ctx);
+                drawWatermarkText(x, y, rotation, text, ctx, textLeft, textRight);
             }
         }
     }
 
-    function drawRandomPattern(numWatermarks, spacing, rotation, text, ctx, canvas) {
+    function drawRandomPattern(numWatermarks, spacing, rotation, text, ctx, canvas, textLeft, textRight) {
         for (let i = 0; i < numWatermarks * 2; i++) {
             const x = Math.random() * canvas.width;
             const y = Math.random() * canvas.height;
-            drawWatermarkText(x, y, rotation, text, ctx);
+            drawWatermarkText(x, y, rotation, text, ctx, textLeft, textRight);
         }
     }
 
-    function drawWavePattern(numWatermarks, spacing, rotation, text, ctx, canvas) {
+    function drawWavePattern(numWatermarks, spacing, rotation, text, ctx, canvas, textLeft, textRight) {
         for (let i = 0; i < numWatermarks; i++) {
             for (let j = 0; j < numWatermarks; j++) {
                 const x = i * spacing;
                 const y = j * spacing + Math.sin(i * 0.5) * spacing;
-                drawWatermarkText(x, y, rotation, text, ctx);
+                drawWatermarkText(x, y, rotation, text, ctx, textLeft, textRight);
             }
         }
     }
 
-    function drawSpiralPattern(numWatermarks, spacing, rotation, text, ctx, canvas) {
+    function drawSpiralPattern(numWatermarks, spacing, rotation, text, ctx, canvas, textLeft, textRight) {
         const centerX = canvas.width / 2;
         const centerY = canvas.height / 2;
         for (let i = 0; i < numWatermarks * 2; i++) {
@@ -232,16 +289,92 @@ document.addEventListener('DOMContentLoaded', () => {
             const radius = i * spacing * 0.5;
             const x = centerX + Math.cos(angle) * radius;
             const y = centerY + Math.sin(angle) * radius;
-            drawWatermarkText(x, y, rotation, text, ctx);
+            drawWatermarkText(x, y, rotation, text, ctx, textLeft, textRight);
         }
     }
 
-    function drawWatermarkText(x, y, rotation, text, ctx) {
+    function drawWatermarkText(x, y, rotation, text, ctx, textLeft, textRight) {
         ctx.save();
         ctx.translate(x, y);
         ctx.rotate((rotation * Math.PI) / 180);
-        ctx.fillText(text, 0, 0);
+        
+        // Determine which text to use for dual text mode
+        let textToDraw = text;
+        if (enableDualText.checked && textLeft && textRight) {
+            // Randomly choose between left and right text
+            textToDraw = Math.random() < 0.5 ? textLeft : textRight;
+        }
+        
+        ctx.fillText(textToDraw, 0, 0);
         ctx.restore();
+    }
+
+    // Separate function for download to support dual text with tempCanvas
+    function drawWatermarkTextForDownload(x, y, rotation, text, ctx, tempCanvas, textLeft, textRight) {
+        ctx.save();
+        ctx.translate(x, y);
+        ctx.rotate((rotation * Math.PI) / 180);
+        
+        // Determine which text to use for dual text mode
+        let textToDraw = text;
+        if (enableDualText.checked && textLeft && textRight) {
+            // Randomly choose between left and right text
+            textToDraw = Math.random() < 0.5 ? textLeft : textRight;
+        }
+        
+        ctx.fillText(textToDraw, 0, 0);
+        ctx.restore();
+    }
+
+    // Pattern drawing functions for download
+    function drawDiagonalPatternForDownload(numWatermarks, spacing, rotation, text, ctx, tempCanvas, textLeft, textRight) {
+        for (let i = -numWatermarks; i < numWatermarks; i++) {
+            for (let j = -numWatermarks; j < numWatermarks; j++) {
+                const x = i * spacing;
+                const y = j * spacing;
+                drawWatermarkTextForDownload(x, y, rotation, text, ctx, tempCanvas, textLeft, textRight);
+            }
+        }
+    }
+
+    function drawGridPatternForDownload(numWatermarks, spacing, rotation, text, ctx, tempCanvas, textLeft, textRight) {
+        for (let i = 0; i < numWatermarks; i++) {
+            for (let j = 0; j < numWatermarks; j++) {
+                const x = i * spacing;
+                const y = j * spacing;
+                drawWatermarkTextForDownload(x, y, rotation, text, ctx, tempCanvas, textLeft, textRight);
+            }
+        }
+    }
+
+    function drawRandomPatternForDownload(numWatermarks, spacing, rotation, text, ctx, tempCanvas, textLeft, textRight) {
+        for (let i = 0; i < numWatermarks * 2; i++) {
+            const x = Math.random() * tempCanvas.width;
+            const y = Math.random() * tempCanvas.height;
+            drawWatermarkTextForDownload(x, y, rotation, text, ctx, tempCanvas, textLeft, textRight);
+        }
+    }
+
+    function drawWavePatternForDownload(numWatermarks, spacing, rotation, text, ctx, tempCanvas, textLeft, textRight) {
+        for (let i = 0; i < numWatermarks; i++) {
+            for (let j = 0; j < numWatermarks; j++) {
+                const x = i * spacing;
+                const y = j * spacing + Math.sin(i * 0.5) * spacing;
+                drawWatermarkTextForDownload(x, y, rotation, text, ctx, tempCanvas, textLeft, textRight);
+            }
+        }
+    }
+
+    function drawSpiralPatternForDownload(numWatermarks, spacing, rotation, text, ctx, tempCanvas, textLeft, textRight) {
+        const centerX = tempCanvas.width / 2;
+        const centerY = tempCanvas.height / 2;
+        for (let i = 0; i < numWatermarks * 2; i++) {
+            const angle = i * 0.5;
+            const radius = i * spacing * 0.5;
+            const x = centerX + Math.cos(angle) * radius;
+            const y = centerY + Math.sin(angle) * radius;
+            drawWatermarkTextForDownload(x, y, rotation, text, ctx, tempCanvas, textLeft, textRight);
+        }
     }
 
     // Color utilities
@@ -380,21 +513,49 @@ document.addEventListener('DOMContentLoaded', () => {
             debounceSlider(() => {
                 updateValueDisplays();
                 drawWatermark();
+                saveSettings();
             });
         });
     });
 
-    // Handle Enter key in watermark text input
-    watermarkText.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter') {
-            e.preventDefault();
-            watermarkText.blur();
-        }
+    // Dual text controls
+    [watermarkTextLeft, watermarkTextRight].forEach(control => {
+        control.addEventListener('input', () => {
+            debounceSlider(() => {
+                drawWatermark();
+                saveSettings();
+            });
+        });
+    });
+
+    // Handle Enter key in watermark text inputs
+    [watermarkText, watermarkTextLeft, watermarkTextRight].forEach(input => {
+        input.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                input.blur();
+            }
+        });
+    });
+
+    // Dual text toggle
+    enableDualText.addEventListener('change', () => {
+        toggleDualTextControls(enableDualText.checked);
+        drawWatermark();
+        saveSettings();
+    });
+
+    // Auto-save toggle
+    autoSaveSettings.addEventListener('change', () => {
+        saveSettings();
     });
 
     // Advanced options
     [enableShadow, enableBlur, enableGradient].forEach(option => {
-        option.addEventListener('change', drawWatermark);
+        option.addEventListener('change', () => {
+            drawWatermark();
+            saveSettings();
+        });
     });
 
     // Pattern selection
@@ -404,6 +565,7 @@ document.addEventListener('DOMContentLoaded', () => {
             button.classList.add('active');
             currentPattern = button.id;
             drawWatermark();
+            saveSettings();
         });
     });
 
@@ -411,15 +573,20 @@ document.addEventListener('DOMContentLoaded', () => {
     invertColorBtn.addEventListener('click', () => {
         colorInput.value = invertColor(colorInput.value);
         drawWatermark();
+        saveSettings();
     });
 
     randomColorBtn.addEventListener('click', () => {
         colorInput.value = getRandomColor();
         drawWatermark();
+        saveSettings();
     });
 
     // Reset settings
     resetBtn.addEventListener('click', () => {
+        // Clear saved settings
+        localStorage.removeItem('watermarkSettings');
+        // Reinitialize with defaults
         initializeSettings();
         drawWatermark();
     });
@@ -430,6 +597,8 @@ document.addEventListener('DOMContentLoaded', () => {
             name: prompt('Enter preset name:'),
             settings: {
                 text: watermarkText.value,
+                textLeft: watermarkTextLeft.value,
+                textRight: watermarkTextRight.value,
                 opacity: opacityInput.value,
                 fontSize: fontSizeInput.value,
                 rotation: rotationInput.value,
@@ -439,12 +608,52 @@ document.addEventListener('DOMContentLoaded', () => {
                 pattern: currentPattern,
                 shadow: enableShadow.checked,
                 blur: enableBlur.checked,
-                gradient: enableGradient.checked
+                gradient: enableGradient.checked,
+                dualText: enableDualText.checked,
+                autoSave: autoSaveSettings.checked
             }
         };
         presets.push(preset);
         localStorage.setItem('watermarkPresets', JSON.stringify(presets));
         alert('Preset saved successfully!');
+    });
+
+    // Load settings
+    loadSettingsBtn.addEventListener('click', () => {
+        const savedSettings = JSON.parse(localStorage.getItem('watermarkSettings') || '{}');
+        if (Object.keys(savedSettings).length === 0) {
+            alert('No saved settings found!');
+            return;
+        }
+        
+        // Apply saved settings
+        if (savedSettings.text) watermarkText.value = savedSettings.text;
+        if (savedSettings.textLeft) watermarkTextLeft.value = savedSettings.textLeft;
+        if (savedSettings.textRight) watermarkTextRight.value = savedSettings.textRight;
+        if (savedSettings.opacity) opacityInput.value = savedSettings.opacity;
+        if (savedSettings.fontSize) fontSizeInput.value = savedSettings.fontSize;
+        if (savedSettings.rotation) rotationInput.value = savedSettings.rotation;
+        if (savedSettings.spacing) spacingInput.value = savedSettings.spacing;
+        if (savedSettings.color) colorInput.value = savedSettings.color;
+        if (savedSettings.fontFamily) fontFamilySelect.value = savedSettings.fontFamily;
+        if (savedSettings.shadow !== undefined) enableShadow.checked = savedSettings.shadow;
+        if (savedSettings.blur !== undefined) enableBlur.checked = savedSettings.blur;
+        if (savedSettings.gradient !== undefined) enableGradient.checked = savedSettings.gradient;
+        if (savedSettings.dualText !== undefined) enableDualText.checked = savedSettings.dualText;
+        if (savedSettings.autoSave !== undefined) autoSaveSettings.checked = savedSettings.autoSave;
+        if (savedSettings.pattern) {
+            currentPattern = savedSettings.pattern;
+            patternButtons.forEach(btn => btn.classList.remove('active'));
+            const patternBtn = document.getElementById(savedSettings.pattern);
+            if (patternBtn) patternBtn.classList.add('active');
+        }
+        
+        // Update UI
+        toggleDualTextControls(enableDualText.checked);
+        updateValueDisplays();
+        drawWatermark();
+        
+        alert('Settings loaded successfully!');
     });
 
     // Optimize download functionality for highest quality
@@ -474,6 +683,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const rotation = parseInt(rotationInput.value);
         const spacing = parseFloat(spacingInput.value);
         const text = watermarkText.value;
+        const textLeft = watermarkTextLeft.value;
+        const textRight = watermarkTextRight.value;
         const color = colorInput.value;
 
         tempCtx.save();
@@ -506,19 +717,19 @@ document.addEventListener('DOMContentLoaded', () => {
         // Draw watermark pattern
         switch (currentPattern) {
             case 'diagonal':
-                drawDiagonalPattern(numWatermarks, spacingPx, rotation, text, tempCtx, tempCanvas);
+                drawDiagonalPatternForDownload(numWatermarks, spacingPx, rotation, text, tempCtx, tempCanvas, textLeft, textRight);
                 break;
             case 'grid':
-                drawGridPattern(numWatermarks, spacingPx, rotation, text, tempCtx, tempCanvas);
+                drawGridPatternForDownload(numWatermarks, spacingPx, rotation, text, tempCtx, tempCanvas, textLeft, textRight);
                 break;
             case 'random':
-                drawRandomPattern(numWatermarks, spacingPx, rotation, text, tempCtx, tempCanvas);
+                drawRandomPatternForDownload(numWatermarks, spacingPx, rotation, text, tempCtx, tempCanvas, textLeft, textRight);
                 break;
             case 'wave':
-                drawWavePattern(numWatermarks, spacingPx, rotation, text, tempCtx, tempCanvas);
+                drawWavePatternForDownload(numWatermarks, spacingPx, rotation, text, tempCtx, tempCanvas, textLeft, textRight);
                 break;
             case 'spiral':
-                drawSpiralPattern(numWatermarks, spacingPx, rotation, text, tempCtx, tempCanvas);
+                drawSpiralPatternForDownload(numWatermarks, spacingPx, rotation, text, tempCtx, tempCanvas, textLeft, textRight);
                 break;
         }
 

@@ -69,6 +69,36 @@
                         </div>
 
                         <div class="control-group">
+                            <label class="toggle">
+                                <input type="checkbox" id="enableDualText">
+                                <span class="toggle-label">Enable Dual Text</span>
+                            </label>
+                        </div>
+
+                        <div class="control-group dual-text-controls" style="display: none;">
+                            <label for="watermarkTextLeft">First Text:</label>
+                            <div class="input-with-icon">
+                                <i class="fas fa-font"></i>
+                                <input type="text" id="watermarkTextLeft" value="LEFT">
+                            </div>
+                        </div>
+
+                        <div class="control-group dual-text-controls" style="display: none;">
+                            <label for="watermarkTextRight">Second Text:</label>
+                            <div class="input-with-icon">
+                                <i class="fas fa-font"></i>
+                                <input type="text" id="watermarkTextRight" value="RIGHT">
+                            </div>
+                        </div>
+
+                        <div class="control-group">
+                            <label class="toggle">
+                                <input type="checkbox" id="autoSaveSettings">
+                                <span class="toggle-label">Auto-save Settings</span>
+                            </label>
+                        </div>
+
+                        <div class="control-group">
                             <label for="opacity">Opacity: <span id="opacityValue">40%</span></label>
                             <input type="range" id="opacity" min="0" max="100" value="40">
                         </div>
@@ -162,12 +192,15 @@
                         <button id="savePresetBtn" class="secondary-btn">
                             <i class="fas fa-save"></i> Save Preset
                         </button>
+                        <button id="loadSettingsBtn" class="secondary-btn">
+                            <i class="fas fa-folder-open"></i> Load Settings
+                        </button>
                 </div>
             </div>
 
             <footer>
                 <div class="footer-content">
-                    <div class="version">Version 2.0.0</div>
+                    <div class="version">Version 3.1.0</div>
                     <div class="signature" id="signature"></div>
                 </div>
             </footer>

@@ -348,8 +348,21 @@ input[type="range"]:active::-moz-range-thumb {
 }
 
 .advanced-options {
-    display: grid;
+    display: flex;
+    flex-direction: column;
     gap: 0.75rem;
+}
+
+.dual-text-controls {
+    transition: all 0.3s ease;
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.dual-text-controls.hidden {
+    opacity: 0;
+    transform: translateY(-10px);
+    pointer-events: none;
 }
 
 .toggle {
